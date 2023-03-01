@@ -1,0 +1,266 @@
+
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <script src="gl.js"></script>
+    <script src="script.js"></script>
+    <style>
+        h2, h1 {
+        font-family:sans-serif;
+        margin-top:30px;
+        }
+
+    </style>
+      </head>
+<body onload="glStart();">
+<label><a href="assignment10.html">\<<<\BACK</a></label>
+
+<center>
+<table width="100%">
+<tbody>
+<tr>    
+    <td>
+        <div>
+            <center>  
+            	<center>
+            		<div>
+            			<h1>Fire Wheel</h1>
+            		</div>
+            	</center>
+                <canvas id="canvas1" data-render="gl" width="600" height="600" tabindex="1"></canvas>
+            </center>
+        </div>
+    </td>
+ </tr>
+</tbody></table>
+<br />
+    <p>No of Objects:<span id="time"></span></p>  
+    <p>Time:<span id="t1"></span></p>  
+           
+</center>
+<hr>
+ 
+ <script id=fs_wood type=x-shader/x-fragment>
+   uniform sampler2D uSampler;
+   uniform vec3 uLDir;
+   varying vec3 vNormal;
+   varying vec2 vUV;
+
+   vec3 ungammaCorrect(vec3 c) { return vec3(pow(c.x,2.222),pow(c.y,2.222),pow(c.z,2.222)); }
+   vec3 gammaCorrect(vec3 c) { return vec3(pow(c.x,.45),pow(c.y,.45),pow(c.z,.45)); }
+
+   void main(void) {
+      float d = .1 + .9 * max(0., dot(uLDir, normalize(vNormal)));
+      vec3 rgb = vec3(d,d,d);
+      vec3 trgb = ungammaCorrect(texture2D(uSampler, vUV).xyz);
+      rgb = rgb * trgb;
+      gl_FragColor = vec4(gammaCorrect(rgb), 1.);
+   }
+</script>
+ 
+<script id="fs_phong" type="x-shader/x-fragment">
+    uniform float p[10];
+    uniform vec3 lDir;
+    varying vec3 vNormal;
+
+    void main(void) {
+
+       // NORMALIZE LENGTH OF THE INTERPOLATED NORMAL
+
+       vec3 normal = normalize(vNormal);
+
+       // COMPUTE DIFFUSE FACTOR
+
+       float ldn = dot(lDir, normal);
+       float diffuse = max(0., ldn);
+
+       // COMPUTE SPECULAR FACTOR
+
+       vec3 refl = 2. * ldn * normal - lDir;
+       float specular = pow(max(0., refl.z), p[9]);
+
+       // SUM PHONG REFLECTION COMPONENTS
+
+       vec3 c = vec3(p[0],p[1],p[2]) +
+                vec3(p[3],p[4],p[5]) * diffuse +
+                vec3(p[6],p[7],p[8]) * specular;
+
+       // APPLY GAMMA CORRECTION
+       
+       
+       gl_FragColor = vec4(pow(c.x,0.45),pow(c.y,0.45),pow(c.z,0.45),1.);
+    }
+</script>
+
+<script id="fs_uv" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+    
+	vec3 ungammaCorrect(vec3 c) { return vec3(pow(c.x,2.222),pow(c.y,2.222),pow(c.z,2.222)); }
+	vec3 gammaCorrect(vec3 c) { return vec3(pow(c.x,.45),pow(c.y,.45),pow(c.z,.45)); }
+   
+	void main(void) {
+       float c =0.3 + 2.*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       float u = .5+.5*sin(30.*vUV.x);
+       float v = .5+.5*sin(40.*vUV.y);
+       gl_FragColor = vec4(c*rgb, 1.);
+    }
+</script>
+
+<script id="fs_fire1" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+    
+	
+	void main(void) {
+       gl_FragColor = vec4(vec3(0.8+0.2*vUV.x,0.6*vUV.y+0.2,0.0), 1.);
+    }
+</script>
+
+<script id="fs_fire2" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+    
+	
+	void main(void) {
+       gl_FragColor = vec4(vec3(0.8+0.2*vUV.x,0.8*vUV.y+0.2,0.0), 1.);
+    }
+</script>
+
+
+<script>
+
+    canvas1.setup = function () {
+       
+    	var zer=[0,0,0];
+        	//function(vertArray, fragShaderId, life, pos, vel, acc, size, w, col)
+        this.mouseX=this.width/2;
+        this.mouseY=this.height/2;
+		this.addObject(createParametric(1 / 50, 1 / 30, sph), 'fs_wood', 1,zer, zer,zer, 0,
+    			[0.16,0.16,0.02], 10, [0.3,0.3,0.8]);
+
+
+
+    }
+    canvas1.update = function () {
+        var m = new M();
+        
+		var mx=(this.mouseX/this.width) - 0.5;
+		var my=-(this.mouseY/this.height) + 0.5;
+		var mouse=[mx,my,0];
+		var zer=[0,0,0];
+    	
+		t=(time).toFixed(0);
+		
+		//console.log(t%1);
+		    	
+        		var j1 = this.objects[0];
+		        j1.pos=[0.1*Math.sin(time),-0.1*Math.cos(time),0];
+        		m.translate(j1.pos);
+		        m.rotate(time*500,3);
+		        m.scale(j1.size);
+		        j1.matrix = m.getMatrix();
+		        
+		        var r=j1.size[0]-0.015;
+		        for(var i = 0; i<360 ;i+=20)
+		        	{
+		        		var p=Math.random()*10
+		        		var angle=(i+p)*Math.PI/180;
+		        		var rc=Math.cos(angle)*r;
+		        		var rs=Math.sin(angle)*r;
+		        		if(t%1==0)
+		            	{
+		        			var x1=(Math.random()-0.5)/200;
+		        			var y1=(Math.random()-0.5)/200;
+		        			var z1=(Math.random()-0.5)/200;
+		        			var q =(Math.random()*12).toFixed(0);
+		        			if(q%3==0)
+			            	{
+		        				this.addObject(createParametric(1 / 5, 1 / 3, sph), 'fs_fire2', 0.8,[rc+j1.pos[0],rs+j1.pos[1],0],[-rs/10,rc/10,0],[-rs/10+x1,rc/10+y1,z1], i ,
+		    	            			[0.005,0.00,0.005], 10, [0.2,0.2,0.2]);
+		        				this.addObject(createParametric(1 / 5, 1 / 3, sph), 'fs_fire2', 1.0,[rc+j1.pos[0],rs+j1.pos[1],0],[-rs/15,rc/15,0],[-rs/10+y1,rc/10+z1,x1], i ,
+		    	            			[0.005,0.00,0.005], 10, [0.2,0.2,0.2]);
+			            	}
+		        			
+		        			this.addObject(createParametric(1 / 8, 1 / 2, sph), 'fs_fire1', 1.2,[rc+j1.pos[0],rs+j1.pos[1],0],[-rs/20,rc/20,0],[-rs/20+x1,rc/20+y1,z1], i ,
+	            			[0.005,0.02,0.005], 10, [0.2,0.2,0.2]);
+		        			
+		            	}
+		        	}
+		        j1.setUniform('uLDir', j1.col);
+		       	j1.textureSrc = "rw.jpg";
+		        m.pop();		        
+		        m.pop();
+		        m.pop();
+		        
+		        for(var i=1;i<this.objects.length;i++)
+				{
+					var j1 = this.objects[i];
+					j1.life-=0.1;
+					j1.vel=addv(j1.vel,j1.acc);
+			       	j1.pos=addv(j1.pos,j1.vel);
+			        m.translate(j1.pos);
+			        var a=180/Math.PI*Math.atan(j1.vel[1]/j1.vel[0]);
+			        m.rotate(a+90,3);
+			        m.scale(addv(mulv(j1.size,(1-j1.life)),[0,0.012,0]));
+			        j1.matrix = m.getMatrix();
+			        j1.setUniform('rgb', j1.col);
+			        m.pop();
+			        m.pop();
+			        m.pop();
+				}
+				
+		        
+		        
+        document.getElementById("time").innerText = this.objects.length;
+        document.getElementById("t1").innerText = (time).toFixed(2);
+     }
+
+    function saw(t) {
+        t %= 2;
+        return t < 1 ? t : 2 - t;
+    }
+
+    var sph = function (u, v) {
+
+        
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+
+            return [cosT * cosP, sinT * cosP, sinP];
+        
+    }
+
+    var cylh = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta),
+            sinT = Math.sin(theta),
+            w = 2 * (v - 0.5);
+
+        return [sinT, w, cosT];
+    }
+
+    var cylv = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta),
+            sinT = Math.sin(theta),
+            w = 2 * (v - 0.5);
+
+        return [w, cosT, sinT];
+    }
+
+    var plane = function (u, v) {
+
+        return [2 * (u - 0.5), 2 * (v - 0.5), 0];
+    }
+
+</script>
+
+
+</body></html>

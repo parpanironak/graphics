@@ -1,0 +1,291 @@
+
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <script src="gl.js"></script>
+    <script src="script.js"></script>
+    <script src="inoise.js"></script>
+    <style>
+        h2, h1 {
+        font-family:sans-serif;
+        margin-top:30px;
+        }
+
+    </style>
+      </head>
+<body onload="glStart();">
+
+<center>
+<table width="100%">
+<tbody>
+<tr>    
+    <td>
+        <div>
+            <center>  
+                <canvas id="canvas1" data-render="gl" width="600" height="600" tabindex="1"></canvas>
+            </center>
+        </div>
+    </td>
+ </tr>
+</tbody></table>
+<br />
+    <p>Time:<span id="time"></span></p>  
+    <p>T1:<span id="t1"></span></p>  
+    <p>T2:<span id="t2"></span></p>       
+</center>
+<hr>
+ 
+ <script id=fs_wood type=x-shader/x-fragment>
+   uniform sampler2D uSampler;
+   uniform vec3 uLDir;
+   varying vec3 vNormal;
+   varying vec2 vUV;
+   void main(void) {
+      float d = .1 + .9 * max(0., dot(uLDir, normalize(vNormal)));
+      vec3 rgb = vec3(d,d,d);
+      vec3 trgb = ungammaCorrect(texture2D(uSampler, vUV).xyz);
+      rgb = rgb * trgb;
+      gl_FragColor = vec4(gammaCorrect(rgb), 1.);
+   }
+</script>
+ 
+<script id="fs_phong" type="x-shader/x-fragment">
+    uniform float p[10];
+    uniform vec3 lDir;
+    varying vec3 vNormal;
+
+    void main(void) {
+
+       // NORMALIZE LENGTH OF THE INTERPOLATED NORMAL
+
+       vec3 normal = normalize(vNormal);
+
+       // COMPUTE DIFFUSE FACTOR
+
+       float ldn = dot(lDir, normal);
+       float diffuse = max(0., ldn);
+
+       // COMPUTE SPECULAR FACTOR
+
+       vec3 refl = 2. * ldn * normal - lDir;
+       float specular = pow(max(0., refl.z), p[9]);
+
+       // SUM PHONG REFLECTION COMPONENTS
+
+       vec3 c = vec3(p[0],p[1],p[2]) +
+                vec3(p[3],p[4],p[5]) * diffuse +
+                vec3(p[6],p[7],p[8]) * specular;
+
+       // APPLY GAMMA CORRECTION
+       
+       
+       gl_FragColor = vec4(pow(c.x,0.45),pow(c.y,0.45),pow(c.z,0.45),1.);
+    }
+</script>
+
+<script id="fs_uv" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+    
+	void main(void) {
+       float c =0.3 + 2.*max(0.,dot(vec3(.0,.4,.9),normalize(vNormal)));
+       float u = .5+.5*sin(30.*vUV.x);
+       float v = .5+.5*sin(40.*vUV.y);
+       gl_FragColor = vec4(c*rgb, 1.);
+    }
+</script>
+
+<script>
+
+    canvas1.setup = function () {
+    	var zer=[0,0,0];
+    	this.addObject(createPlane(),'fs_uv', 
+    			life=1,
+    			pos=[0,0,0], 
+    			vel=zer ,
+    			acc=zer, 
+    			ori=0,
+    			size=[.51,.51,.51], 
+    			w=10, 
+    			col=[0.5,0.2,0.0]
+    	); 
+    	var r=[0.3, 0.2, 0.4, 0.3, 0.1,0.3,0.15,0.35];
+    	var theta = [20, 200, 80, 230, 300,60,50,40,340];
+    	for(var i = 0;i<5;i++)
+    		{
+    		
+        	this.addObject(createParametric(1/50,1/10,terr2,false),'fs_uv', 
+        			life=1,
+        			pos=[r[i]*Math.cos(theta[i]/180*Math.PI),r[i]*Math.sin(theta[i]/180*Math.PI),-0.01], 
+        			vel=zer ,
+        			acc=zer, 
+        			ori=0,
+        			size=[.05,.05,.05], 
+        			w=10, 
+        			col=[0.5,0.2,0.0]);
+    		}
+    	
+    	
+    }
+    
+    canvas1.update = function () {
+    	var r=[0.05, 0.25, 0.35, 0.45, 0.15,0.3,0.35,0.4];
+        var j1 = this.objects[0]; 
+ 		//updateVertexBuffer(this.canvas.gl, new Float32Array(createParametric(1/50,1/50,terr)),j1.vertexBuffer);
+ 		var m = new M();
+ 		m.translate(j1.pos);
+ 		m.rotate(-60,1);
+ 		m.scale(j1.size);
+        j1.matrix = m.getMatrix();
+        m.pop();
+        j1.setUniform('rgb', j1.col);
+        
+       	
+        for(var i=1;i<this.objects.length;i++)
+		{
+        	j1 = this.objects[i]; 
+        	updateVertexBuffer(this.canvas.gl, new Float32Array(createParametric(1/50,1/50,terr)),j1.vertexBuffer);
+        	
+      		var theta=Math.random()*Math.PI*2;
+          	j1 = this.objects[i]; 
+        	if(Math.sin(time*Math.PI/2)<0)
+        		j1.pos = [r[i-1]*Math.cos(theta),r[i-1]*Math.sin(theta),-0.01];	
+        	
+        	
+        	m.translate(j1.pos);
+ 			m.scale(j1.size);
+        	j1.matrix = m.getMatrix();       
+        	m.pop();
+        	m.pop();
+        	m.pop();
+        	j1.setUniform('rgb', j1.col);
+		}
+        
+        
+      	document.getElementById("time").innerText = this.objects.length;
+        document.getElementById("t1").innerText = (time).toFixed(2);
+     }
+
+    function saw(t) {
+        t %= 2;
+        return t < 1 ? t : 2 - t;
+    }
+
+    var sph = function (u, v) {
+
+        
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+
+            return [cosT * cosP, sinT * cosP, sinP];
+        
+    }
+    
+    var cone = function(u,v){
+    	var theta = 2 * Math.PI * u,
+    		phi = Math.PI * (v - .5),
+        	cosT = Math.cos(theta), cosP = Math.cos(phi),
+        	sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+
+    	return [ sinT*(1-v) , 2*(v-0.5), cosT*(1-v) ];
+    }
+
+    var cylh = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta),
+            sinT = Math.sin(theta),
+            w = 2 * (v - 0.5);
+
+        return [sinT, w, cosT];
+    }
+
+    var cylv = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta),
+            sinT = Math.sin(theta),
+            w = 2 * (v - 0.5);
+
+        return [w, cosT, sinT];
+    }
+
+    var plane = function (u, v) {
+
+        return [2 * (u - 0.5), 2 * (v - 0.5), 0];
+    }
+    
+    var mount = function (u, v) {
+        
+    	var uun = 2*(u-0.5);
+    	var vvn = 2*(v-0.5);
+    	var height = (noise(uun*0.5,vvn*0.5,0)*8 + noise(uun*1,vvn*1,0)*4
+                + noise(uun*4,vvn*4,0));
+        return [uun,vvn,height];
+    }
+    
+	var terr1 = function (u, v) {
+        
+    	var uun = 2*(u-0.5);
+    	var vvn = 2*(v-0.5);
+    	var h = (noise(uun,vvn,0)/8)+(noise(uun*5,vvn*5,0)/32)+(noise(uun*15,vvn*15,0)/64);
+        return [uun,vvn,h];
+    }
+	
+	var terr2 = function (u, v) {
+	
+		var time = ((new Date).getTime() - startTime) / 1000;
+		//alert(time);
+		
+		var uun = 2*(u-0.5);
+    	var vvn = 2*(v-0.5);
+    	var r = sqrt(uun*uun+vvn*vvn);
+    	var h = -Math.sin(vvn*5)*Math.cos(uun*5)*0.3;
+    	return [uun,vvn,h];
+    }
+	
+	var terr = function (u, v) {
+		
+		var time = ((new Date).getTime() - startTime) / 1000;
+		//alert(time);
+		
+	 	var uun = 2*(u-0.5);
+    	var vvn = 2*(v-0.5);
+    	var h=Math.cos(vvn*Math.PI/2)*Math.cos(uun*Math.PI/2)*0.8*max(Math.sin(time*Math.PI/2),0);
+    	return [uun,vvn,h];
+    }
+    
+    var hill = function (u,v){
+    	
+    	var un = 4*(u-0.5);
+    	var vn = 4*(v-0.5);
+    	var r=Math.sqrt(vn*vn+un*un);
+    	var h;    
+    	var hn=noise(un*5,vn*5,0)/20+noise(un*2,vn*2,0)/10;
+    	var xn=noise(un*10,vn*5,0)/20+noise(un*5,vn*2.5,0)/10;
+    	var yn=noise(vn*10,un*5,0)/20+noise(vn*5,un*2.5,0)/10;
+    	h = 2*Math.sqrt(2)- r;
+    	h=h*h/4*(hn+1);
+    	return [un*(1+xn/2),vn*(1+yn/2),h];
+    }
+    
+
+
+	
+    var hillhole = function (u, v) {
+        var theta = 2*Math.PI * (u - .5),
+            phi = 2*Math.PI * (v - .5),
+            cosT = Math.cos(theta),
+            sinT = Math.sin(theta),
+            w = 2 * (v - 0.5);
+        
+        return [(0.5+1.5*(1-v))*cosT, (0.5+1.5*(1-v))*sinT, w];
+    }
+    
+</script>
+
+
+</body></html>

@@ -1,0 +1,804 @@
+
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><script src="gl.js"></script>
+    <script src="script.js"></script>
+    <style>
+        h3, h1 {
+        font-family:sans-serif;
+        margin-top:30px;
+        }
+
+    </style>
+      </head>
+<body onload="glStart();">
+
+<center>
+<table width="100%">
+<tbody>
+<tr>    
+    <td>
+        <div>
+			<center><p><h1>Gangnam Style</h2>
+			<h3>Forward Kinematics</h3>
+			</p></center>
+            <center>  
+				<canvas id="canvas2" data-render="gl" width="600" height="600" tabindex="1"></canvas>
+                <canvas id="canvas1" data-render="gl" width="600" height="600" tabindex="1"></canvas>
+            </center>
+        </div>
+    </td>
+ </tr>
+</tbody></table>   
+</center>
+<hr>
+ 
+ <script id=fs_wood type=x-shader/x-fragment>
+   uniform sampler2D uSampler;
+   uniform vec3 uLDir;
+   varying vec3 vNormal;
+   varying vec2 vUV;
+   vec3 ungammaCorrect(vec3 c) { return vec3(pow(c.x,2.222),pow(c.y,2.222),pow(c.z,2.222)); }
+	vec3 gammaCorrect(vec3 c) { return vec3(pow(c.x,.45),pow(c.y,.45),pow(c.z,.45)); }
+   
+   void main(void) {
+      float d = .2 + .8 * max(0., dot(uLDir, normalize(vNormal)));
+      vec3 rgb = vec3(d,d,d);
+      vec3 trgb = ungammaCorrect(texture2D(uSampler, vUV).xyz);
+      rgb = rgb * trgb;
+      gl_FragColor = vec4(gammaCorrect(rgb), 1.);
+   }
+</script>
+ 
+<script id="fs_phong" type="x-shader/x-fragment">
+    uniform float p[10];
+    uniform vec3 lDir;
+    varying vec3 vNormal;
+
+    void main(void) {
+
+       // NORMALIZE LENGTH OF THE INTERPOLATED NORMAL
+
+       vec3 normal = normalize(vNormal);
+
+       // COMPUTE DIFFUSE FACTOR
+
+       float ldn = dot(lDir, normal);
+       float diffuse = max(0., ldn);
+
+       // COMPUTE SPECULAR FACTOR
+
+       vec3 refl = 2. * ldn * normal - lDir;
+       float specular = pow(max(0., refl.z), p[9]);
+
+       // SUM PHONG REFLECTION COMPONENTS
+
+       vec3 c = vec3(p[0],p[1],p[2]) +
+                vec3(p[3],p[4],p[5]) * diffuse +
+                vec3(p[6],p[7],p[8]) * specular;
+
+       // APPLY GAMMA CORRECTION
+       
+       
+       gl_FragColor = vec4(pow(c.x,0.45),pow(c.y,0.45),pow(c.z,0.45),1.);
+    }
+</script>
+
+<script id="fs_uv" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+    
+	
+	void main(void) {
+       float c =0.3 + 2.*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       float u = .5+.5*sin(30.*vUV.x);
+       float v = .5+.5*sin(40.*vUV.y);
+       gl_FragColor = vec4(c*rgb, 1.);
+    }
+</script>
+
+<script>
+  
+
+    canvas1.setup = function () {
+        this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //body 0
+        this.addObject(createParametric(1 / 50, 1 / 2, cylv), 'fs_uv'); //shoulder 1
+        this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //shoulder right joint 2
+        this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //shoulder left joint 3
+        this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_wood'); //face 4
+        this.addObject(createParametric(1 / 50, 1 / 2, cylv), 'fs_uv'); //hip 5
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //shoulder right joint 6
+        this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //shoulder left joint 7
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //rbiceps 8
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //relbow 9
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //rforearm 10
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //lbiceps 11
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //lelbow 12
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //lforearm 13
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //rthigh 14
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //rknee 15
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //rleg 16
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //lthigh 17
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //lknee 18
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //lleg 19
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //lwrist 20
+        this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//lhand 21
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//rwrist 22
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//rhand 23
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//rankle 24
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//rfeet 25
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//lankle 26
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//lfeet 27
+    }
+
+    canvas1.update = function () {
+        var m = new M();
+		var pi = 4*Math.PI;
+		var t = time*6;
+		var cs1,cs2;
+		if(t%(2*pi)<=pi)
+		{
+			cs1 = Math.max(0,Math.sin(time * 4 - 3*pi/8));
+			cs2 = Math.abs(Math.min(0, Math.sin(time * 4-3*pi/8)));
+		}
+		else
+		{
+			cs1 = Math.max(0,Math.sin(time * 4 - 3*pi/8));
+			cs2 = Math.abs(Math.min(0, Math.sin(time * 4-3*pi/8)));
+		}
+		
+		var ct=Math.cos(2*t);
+        var sstep1 = Math.max(0, Math.sin(t));
+        var sstep2 = Math.abs(Math.min(0, Math.sin(2*t)));
+        var cstep1 = Math.max(0,Math.cos(t));
+        var cstep2 = Math.abs(Math.min(0, Math.cos(t)));
+        var jump =Math.abs(Math.cos(t));
+		var jump2 =Math.abs(Math.cos(t+Math.PI/2));
+        var bdy = this.objects[0];
+        bdy.setUniform('rgb', [.57, .57, .57]);
+        m.translate(0.0,0.2,0.0);
+        //m.rotate(30*Math.cos(t), 2);
+        m.translate(0.0, 0.1 * jump, 0.0);
+        m.scale(0.05,0.3,0.05);
+        bdy.matrix = m.getMatrix();
+        m.pop();
+            var sho = this.objects[1]; //shoulder
+            sho.setUniform('rgb', [.57, .57, .57]);
+            m.translate(0.0, 0.12, 0);
+            m.scale(0.3, 0.05, 0.05);
+            sho.matrix = m.getMatrix();
+            m.pop();
+                var rsjoint = this.objects[2];
+                rsjoint.setUniform('rgb', [.57, .57, .57]);
+                m.translate(0.3, 0.0, 0.0);
+				m.rotate(-55+50*jump,2);
+				m.rotate(55+30*jump,3);
+                m.scale(0.05, 0.05, 0.05);
+                rsjoint.matrix = m.getMatrix();
+                m.pop();
+					var rbiceps=this.objects[8];
+					rbiceps.setUniform('rgb', [.57, .57, .57]);
+					m.translate(0.0, -0.15, 0);
+					m.scale(0.05, 0.15, 0.05);
+					rbiceps.matrix = m.getMatrix();
+					m.pop(); //biceps
+						var relbow=this.objects[9];
+						relbow.setUniform("rgb",[0.57,0.57,0.57]);
+						m.translate(0,-0.15,0.0);
+						//m.rotate(-72*3*t,1);
+						m.rotate(80,3);
+						m.rotate(-40*Math.cos(t)*Math.sin(t),3);
+						m.rotate(-20+20*jump,1);
+						m.rotate(90,2);
+						m.scale(0.05,0.05,0.05);
+						relbow.matrix=m.getMatrix();
+						m.pop();//elbow
+							var rforearm=this.objects[10];
+							rforearm.setUniform("rgb",[0.57,0.57,0.57]);
+							m.translate(0,-0.15,0.0);
+							m.scale(0.05,0.15,0.05);
+							rforearm.matrix=m.getMatrix();
+							m.pop();
+								var rwrist = this.objects[22];
+								rwrist.setUniform("rgb",[0.57,0.57,0.57]);
+								m.translate(0.0,-0.15,0.00);								
+								//m.rotate(-72*3*t+80,2);
+								m.rotate(-50,3);
+								m.scale(0.05,0.05,0.05);
+								rwrist.matrix=m.getMatrix();
+								m.pop();//wrist
+									var rhand = this.objects[23];
+									rhand.setUniform("rgb",[0.57,0.57,0.57]);
+									m.translate(0.02,-0.04,0.0);
+									m.scale(0.040,0.08,0.06);
+									rhand.matrix = m.getMatrix();
+									m.pop();//hand 
+									m.pop();//hand
+								m.pop();//wrist pop
+								m.pop();//wrist pop
+								//m.pop();//wrist pop
+							m.pop(); //forearm pop
+						m.pop();//elbow	
+						m.pop();//elbow	
+						m.pop();//elbow	
+						m.pop();//elbow	
+						m.pop();		
+					m.pop();//biceps
+            	m.pop();//sjoint
+				m.pop();//sjoint
+				m.pop();//sjoint
+				            
+				var lsjoint = this.objects[3];
+                lsjoint.setUniform('rgb', [.57, .57, .57]);
+                m.translate(-0.3, 0.0, 0.0);
+				m.rotate(10-10*jump,2);
+				m.rotate(-60-8*jump,1);
+                m.scale(0.05, 0.05, 0.05);
+                lsjoint.matrix = m.getMatrix();
+                m.pop(); //sjoint
+					var lbiceps=this.objects[11];
+					lbiceps.setUniform('rgb', [.57, .57, .57]);
+					m.translate(0.0, -0.15, 0);
+					m.scale(0.05, 0.15, 0.05);
+					lbiceps.matrix = m.getMatrix();
+					m.pop(); //biceps
+						var lelbow=this.objects[12];
+						lelbow.setUniform("rgb",[0.57,0.57,0.57]);
+						m.translate(0,-0.15,0.0);
+						m.rotate(-10*jump,2);
+						m.rotate(70,3);
+						m.rotate(90,2);
+						m.scale(0.05,0.05,0.05);
+						lelbow.matrix=m.getMatrix();
+						m.pop(); //elbow
+							var lforearm=this.objects[13];
+							lforearm.setUniform("rgb",[0.57,0.57,0.57]);
+							m.translate(0,-0.15,0.0);
+							m.scale(0.05,0.15,0.05);
+							lforearm.matrix=m.getMatrix();
+							m.pop();
+								var lwrist = this.objects[20];
+								lwrist.setUniform("rgb",[0.57,0.57,0.57]);
+								m.translate(0.0,-0.15,0.0);
+								m.rotate(-25*Math.cos(t*2),3);
+								m.scale(0.05,0.05,0.05);
+								lwrist.matrix=m.getMatrix();
+								m.pop();//wrist
+									var lhand = this.objects[21];
+									lhand.setUniform("rgb",[0.57,0.57,0.57]);
+									m.translate(0.0,-0.02,0.0);
+									m.scale(0.040,0.08,0.06);
+									lhand.matrix = m.getMatrix();
+									m.pop();//hand 
+									m.pop();//hand
+								m.pop();//wrist pop
+								m.pop();//wrist
+							m.pop(); //lforearm pop
+						m.pop(); //elbow pop
+						m.pop();
+						m.pop();
+						m.pop();
+					m.pop();//biceps
+				m.pop();//sjoint
+				m.pop();
+				m.pop();
+			m.pop();//shoulder
+			
+			var face = this.objects[4]; //face
+			face.setUniform('uLDir', [.57, .57, .57]);
+			face.textureSrc = "abc.jpg";
+			m.translate(0.0,0.38,0);
+			m.rotate(90,2);
+			m.scale(0.15,0.16,0.15);
+			face.matrix=m.getMatrix();
+			m.pop();
+			m.pop();
+			m.pop();
+			var hip = this.objects[5]; //hip
+			hip.setUniform('rgb',[.57, .57, .57]);
+			m.translate(0,-0.3,0);
+			m.scale(0.16, 0.05, 0.05);
+			hip.matrix = m.getMatrix();
+			m.pop();
+				var rhjoint = this.objects[6];
+                rhjoint.setUniform('rgb', [.57, .57, .57]);
+                m.translate(0.16, 0.0, 0.0);
+				m.rotate(35*cstep1,2)
+				m.rotate(-30*cstep1,1)
+				m.rotate(6,3);
+                m.scale(0.05, 0.05, 0.05);
+                rhjoint.matrix = m.getMatrix();
+                m.pop();//tjoint
+					var	rthigh=this.objects[14];
+					rthigh.setUniform('rgb',[.57, .57, .57]);
+					m.translate(0.0,-0.2, 0.0);
+					m.scale(0.05,0.2,0.05);
+					rthigh.matrix=m.getMatrix();
+					m.pop();//thigh
+						var rknee=this.objects[15];
+						rknee.setUniform('rgb',[.57, .57, .57]);
+						m.translate(0.0,-0.2, 0.0);
+						m.rotate(-90,2)
+						m.rotate(-60*cstep1,3)
+						m.rotate(3,3);
+						m.rotate(-3,1);
+						m.scale(0.05,0.05,0.05);
+						rknee.matrix=m.getMatrix();
+						m.pop();//knee
+							var rleg=this.objects[16];
+							rleg.setUniform('rgb',[.57,0.57,0.57]);
+							m.translate(0.0,-0.2, 0.0);
+							m.scale(0.05,0.2,0.05);
+							rleg.matrix=m.getMatrix();
+							m.pop();//leg
+								var rankle=this.objects[24];
+								rankle.setUniform('rgb' ,[.57,.57,.57]);
+								m.translate(0.0,-0.2,0.0);
+								m.rotate(-15-40*cstep1-30*cstep2,3);
+								m.rotate(20+5*cstep1,2);
+								m.rotate(-10,1);
+								m.scale(0.05,0.05,0.05);
+								rankle.matrix=m.getMatrix();
+								m.pop();//ankle
+									var rfoot=this.objects[25];
+									rfoot.setUniform('rgb',[0.57,0.57,0.57]);
+									m.translate(0.04,-0.015,0.0);
+									m.scale(0.1,0.03,0.055);
+									rfoot.matrix=m.getMatrix();
+									m.pop();//foot
+									m.pop();//foot
+								m.pop();//ankle
+								m.pop();//ankle
+								m.pop();//ankle
+								m.pop();//ankle
+							m.pop();//leg
+						m.pop();//knee
+						m.pop();//knee
+						m.pop();//knee
+						m.pop();//knee
+						m.pop();//knee
+					m.pop();//thigh
+                m.pop();//tjoint
+				m.pop();//tjoint
+				m.pop();//tjoint
+				m.pop();//tjoint
+				
+                var lhjoint = this.objects[7];
+                lhjoint.setUniform('rgb', [.57, .57, .57]);
+                m.translate(-0.16, 0.0, 0.0);
+				m.rotate(-35*cstep2,2);
+				m.rotate(-30*cstep2,1);
+				m.rotate(-6,3);
+                m.scale(0.05, 0.05, 0.05);
+                lhjoint.matrix = m.getMatrix();
+                m.pop();
+					var	lthigh=this.objects[17];
+					lthigh.setUniform('rgb',[.57, .57, .57]);
+					m.translate(0.0,-0.2, 0.0);
+					m.scale(0.05,0.2,0.05);
+					lthigh.matrix=m.getMatrix();
+					m.pop();
+						var lknee=this.objects[18];
+						lknee.setUniform('rgb',[.57, .57, .57]);
+						m.translate(0.0,-0.2, 0.0);
+						m.rotate(-90,2);
+						m.rotate(-60*cstep2,3);
+						m.rotate(-3,3);
+						m.rotate(3,1);
+						m.scale(0.05,0.05,0.05);
+						lknee.matrix=m.getMatrix();
+						m.pop();
+							var lleg=this.objects[19];
+							lleg.setUniform('rgb',[.57,0.57,0.57]);
+							m.translate(0.0,-0.2, 0.0);
+							m.scale(0.05,0.2,0.05);
+							lleg.matrix=m.getMatrix();
+							m.pop();
+								var lankle=this.objects[26];
+								lankle.setUniform('rgb' ,[.57,.57,.57]);
+								m.translate(0.0,-0.2,0.0);
+								m.rotate(-15-30*cstep1-40*cstep2,3);
+								m.rotate(-20+5*cstep2,2);
+								m.rotate(10,1);
+								m.scale(0.05,0.05,0.05);
+								lankle.matrix=m.getMatrix();
+								m.pop();//ankle
+									var lfoot=this.objects[27];
+									lfoot.setUniform('rgb',[0.57,0.57,0.57]);
+									m.translate(0.04,-0.020,0.0);
+									m.scale(0.1,0.03,0.055);
+									lfoot.matrix=m.getMatrix();
+									m.pop();//foot
+									m.pop();//foot
+								m.pop();//ankle
+								m.pop();//ankle	
+								m.pop();//ankle	
+								m.pop();//ankle
+							m.pop();
+						m.pop();
+						m.pop();
+						m.pop();
+						m.pop();
+						m.pop();
+					m.pop();
+                m.pop();
+				m.pop();
+				m.pop();
+				m.pop();
+        
+        if (this.mousePressed)
+            console.log("canvas1 drag " + this.mouseX + " " + this.mouseY);
+    }
+
+	
+
+
+    var sph = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+        return [cosT * cosP, sinT * cosP, sinP];
+    }
+
+    var cylh = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta),
+            sinT = Math.sin(theta),
+            w=2*(v-0.5);
+        
+        return [sinT, w, cosT];
+    }
+
+    var cylv = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta),
+            sinT = Math.sin(theta),
+            w = 2 * (v - 0.5);
+
+        return [w, cosT, sinT];
+    }
+
+    var plane = function (u, v) {
+
+        return [2 * (u - 0.5), 2 * (v - 0.5), 0];
+    }
+
+</script>
+
+<script>
+  
+
+    canvas2.setup = function () {
+        this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //body 0
+        this.addObject(createParametric(1 / 50, 1 / 2, cylv), 'fs_uv'); //shoulder 1
+        this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //shoulder right joint 2
+        this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //shoulder left joint 3
+        this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_wood'); //face 4
+        this.addObject(createParametric(1 / 50, 1 / 2, cylv), 'fs_uv'); //hip 5
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //shoulder right joint 6
+        this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //shoulder left joint 7
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //rbiceps 8
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //relbow 9
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //rforearm 10
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //lbiceps 11
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //lelbow 12
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //lforearm 13
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //rthigh 14
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //rknee 15
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //rleg 16
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //lthigh 17
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //lknee 18
+		this.addObject(createParametric(1 / 50, 1 / 2, cylh), 'fs_uv'); //lleg 19
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv'); //lwrist 20
+        this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//lhand 21
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//rwrist 22
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//rhand 23
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//rankle 24
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//rfeet 25
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//lankle 26
+		this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs_uv');//lfeet 27
+    }
+
+    canvas2.update = function () {
+        var m = new M();
+		var pi = 4*Math.PI;
+		var t = time*6;
+		var cs1,cs2;
+		if(t%(2*pi)<=pi)
+		{
+			cs1 = Math.max(0,Math.sin(time * 4 - 3*pi/8));
+			cs2 = Math.abs(Math.min(0, Math.sin(time * 4-3*pi/8)));
+		}
+		else
+		{
+			cs1 = Math.max(0,Math.sin(time * 4 - 3*pi/8));
+			cs2 = Math.abs(Math.min(0, Math.sin(time * 4-3*pi/8)));
+		}
+		
+		var ct=Math.cos(2*t);
+        var sstep1 = Math.max(0, Math.sin(t));
+        var sstep2 = Math.abs(Math.min(0, Math.sin(2*t)));
+        var cstep1 = Math.max(0,Math.cos(t));
+        var cstep2 = Math.abs(Math.min(0, Math.cos(t)));
+        var jump =Math.abs(Math.cos(t));
+        var bdy = this.objects[0];
+        bdy.setUniform('rgb', [.57, .57, .57]);
+        m.translate(0.0,0.2,0.0);
+        m.rotate(30*Math.cos(t), 2);
+        m.translate(0.0, 0.1 * jump, 0.0);
+        m.scale(0.05,0.3,0.05);
+        bdy.matrix = m.getMatrix();
+        m.pop();
+            var sho = this.objects[1]; //shoulder
+            sho.setUniform('rgb', [.57, .57, .57]);
+            m.translate(0.0, 0.12, 0);
+            m.scale(0.3, 0.05, 0.05);
+            sho.matrix = m.getMatrix();
+            m.pop();
+                var rsjoint = this.objects[2];
+                rsjoint.setUniform('rgb', [.57, .57, .57]);
+                m.translate(0.3, 0.0, 0.0);
+				m.rotate(-50+22*Math.cos(2*t),1);
+				m.rotate(-12, 3)
+                m.scale(0.05, 0.05, 0.05);
+                rsjoint.matrix = m.getMatrix();
+                m.pop();
+					var rbiceps=this.objects[8];
+					rbiceps.setUniform('rgb', [.57, .57, .57]);
+					m.translate(0.0, -0.15, 0);
+					m.scale(0.05, 0.15, 0.05);
+					rbiceps.matrix = m.getMatrix();
+					m.pop(); //biceps
+						var relbow=this.objects[9];
+						relbow.setUniform("rgb",[0.57,0.57,0.57]);
+						m.translate(0,-0.15,0.0);
+						m.rotate(15,2);
+						m.rotate(-38,3);
+						m.scale(0.05,0.05,0.05);
+						relbow.matrix=m.getMatrix();
+						m.pop();//elbow
+							var rforearm=this.objects[10];
+							rforearm.setUniform("rgb",[0.57,0.57,0.57]);
+							m.translate(0,-0.15,0.0);
+							m.scale(0.05,0.15,0.05);
+							rforearm.matrix=m.getMatrix();
+							m.pop();
+								var rwrist = this.objects[22];
+								rwrist.setUniform("rgb",[0.57,0.57,0.57]);
+								m.translate(0.0,-0.15,0.0);
+								m.rotate(-40,2);
+								m.rotate(40,3);
+								m.rotate(-45*ct,1);
+								m.scale(0.05,0.05,0.05);
+								rwrist.matrix=m.getMatrix();
+								m.pop();//wrist
+									var rhand = this.objects[23];
+									rhand.setUniform("rgb",[0.57,0.57,0.57]);
+									m.translate(0.0,-0.03,0.0);
+									m.scale(0.065,0.08,0.04);
+									rhand.matrix = m.getMatrix();
+									m.pop();//hand 
+									m.pop();//hand
+								m.pop();//wrist pop
+								m.pop();//wrist pop
+								m.pop();//wrist pop
+								m.pop();//wrist pop
+							m.pop(); //forearm pop
+						m.pop();
+						m.pop();
+						m.pop();						
+					m.pop();
+            	m.pop();
+				m.pop();
+			m.pop();
+            
+				var lsjoint = this.objects[3];
+                lsjoint.setUniform('rgb', [.57, .57, .57]);
+                m.translate(-0.3, 0.0, 0.0);
+                
+                m.rotate(-50 + 22 * Math.cos(2*t), 1);
+                m.rotate(12, 3)
+                m.scale(0.05, 0.05, 0.05);
+                lsjoint.matrix = m.getMatrix();
+                m.pop(); //sjoint
+					var lbiceps=this.objects[11];
+					lbiceps.setUniform('rgb', [.57, .57, .57]);
+					m.translate(0.0, -0.15, 0);
+					m.scale(0.05, 0.15, 0.05);
+					lbiceps.matrix = m.getMatrix();
+					m.pop(); //biceps
+						var lelbow=this.objects[12];
+						lelbow.setUniform("rgb",[0.57,0.57,0.57]);
+						m.translate(0,-0.15,0.0);
+						m.rotate(-30,2);
+						m.rotate(50,3);
+						m.scale(0.05,0.05,0.05);
+						lelbow.matrix=m.getMatrix();
+						m.pop(); //elbow
+							var lforearm=this.objects[13];
+							lforearm.setUniform("rgb",[0.57,0.57,0.57]);
+							m.translate(0,-0.15,0.0);
+							m.scale(0.05,0.15,0.05);
+							lforearm.matrix=m.getMatrix();
+							m.pop();
+								var lwrist = this.objects[20];
+								lwrist.setUniform("rgb",[0.57,0.57,0.57]);
+								m.translate(0.0,-0.15,0.0);
+								m.rotate(40,2);
+								m.rotate(-40,3);
+								m.rotate(-45*ct,1);
+								m.scale(0.05,0.05,0.05);
+								lwrist.matrix=m.getMatrix();
+								m.pop();//wrist
+									var lhand = this.objects[21];
+									lhand.setUniform("rgb",[0.57,0.57,0.57]);
+									m.translate(0.0,-0.02,0.0);
+									m.scale(0.065,0.08,0.04);
+									lhand.matrix = m.getMatrix();
+									m.pop();//hand 
+									m.pop();//hand
+								m.pop();//wrist pop
+								m.pop();//wrist pop
+								m.pop();//wrist pop
+								m.pop();//wrist pop
+							m.pop(); //lforearm pop
+						m.pop(); //elbow pop
+						m.pop(); //elbow
+						m.pop(); //elbow					
+					m.pop();//biceps
+				m.pop();//sjoint
+				m.pop();//sjoint
+				m.pop();//sjoint
+			m.pop();
+			
+			var face = this.objects[4]; //face
+			face.setUniform('uLDir', [.57, .57, .57]);
+			face.textureSrc = "abc.jpg";
+			m.translate(0.0,0.38,0);
+			m.rotate(90,2);
+			m.scale(0.15,0.16,0.15);
+			face.matrix=m.getMatrix();
+			m.pop();
+			m.pop();
+			m.pop();
+			var hip = this.objects[5]; //hip
+			hip.setUniform('rgb',[.57, .57, .57]);
+			m.translate(0,-0.3,0);
+			m.scale(0.16, 0.05, 0.05);
+			hip.matrix = m.getMatrix();
+			m.pop();
+				var rhjoint = this.objects[6];
+                rhjoint.setUniform('rgb', [.57, .57, .57]);
+                m.translate(0.16, 0.0, 0.0);
+				m.rotate(35*cstep1,2)
+				m.rotate(-30*cstep1,1)
+				m.rotate(6,3);
+                m.scale(0.05, 0.05, 0.05);
+                rhjoint.matrix = m.getMatrix();
+                m.pop();//tjoint
+					var	rthigh=this.objects[14];
+					rthigh.setUniform('rgb',[.57, .57, .57]);
+					m.translate(0.0,-0.2, 0.0);
+					m.scale(0.05,0.2,0.05);
+					rthigh.matrix=m.getMatrix();
+					m.pop();//thigh
+						var rknee=this.objects[15];
+						rknee.setUniform('rgb',[.57, .57, .57]);
+						m.translate(0.0,-0.2, 0.0);
+						m.rotate(-90,2)
+						m.rotate(-60*cstep1,3)
+						m.rotate(3,3);
+						m.rotate(-3,1);
+						m.scale(0.05,0.05,0.05);
+						rknee.matrix=m.getMatrix();
+						m.pop();//knee
+							var rleg=this.objects[16];
+							rleg.setUniform('rgb',[.57,0.57,0.57]);
+							m.translate(0.0,-0.2, 0.0);
+							m.scale(0.05,0.2,0.05);
+							rleg.matrix=m.getMatrix();
+							m.pop();//leg
+								var rankle=this.objects[24];
+								rankle.setUniform('rgb' ,[.57,.57,.57]);
+								m.translate(0.0,-0.2,0.0);
+								m.rotate(-15-40*cstep1-30*cstep2,3);
+								m.rotate(20+5*cstep1,2);
+								m.rotate(-10,1);
+								m.scale(0.05,0.05,0.05);
+								rankle.matrix=m.getMatrix();
+								m.pop();//ankle
+									var rfoot=this.objects[25];
+									rfoot.setUniform('rgb',[0.57,0.57,0.57]);
+									m.translate(0.04,-0.015,0.0);
+									m.scale(0.1,0.03,0.055);
+									rfoot.matrix=m.getMatrix();
+									m.pop();//foot
+									m.pop();//foot
+								m.pop();//ankle
+								m.pop();//ankle
+								m.pop();//ankle
+								m.pop();//ankle
+							m.pop();//leg
+						m.pop();//knee
+						m.pop();//knee
+						m.pop();//knee
+						m.pop();//knee
+						m.pop();//knee
+					m.pop();//thigh
+                m.pop();//tjoint
+				m.pop();//tjoint
+				m.pop();//tjoint
+				m.pop();//tjoint
+				
+                var lhjoint = this.objects[7];
+                lhjoint.setUniform('rgb', [.57, .57, .57]);
+                m.translate(-0.16, 0.0, 0.0);
+				m.rotate(-35*cstep2,2);
+				m.rotate(-30*cstep2,1);
+				m.rotate(-6,3);
+                m.scale(0.05, 0.05, 0.05);
+                lhjoint.matrix = m.getMatrix();
+                m.pop();
+					var	lthigh=this.objects[17];
+					lthigh.setUniform('rgb',[.57, .57, .57]);
+					m.translate(0.0,-0.2, 0.0);
+					m.scale(0.05,0.2,0.05);
+					lthigh.matrix=m.getMatrix();
+					m.pop();
+						var lknee=this.objects[18];
+						lknee.setUniform('rgb',[.57, .57, .57]);
+						m.translate(0.0,-0.2, 0.0);
+						m.rotate(-90,2);
+						m.rotate(-60*cstep2,3);
+						m.rotate(-3,3);
+						m.rotate(3,1);
+						m.scale(0.05,0.05,0.05);
+						lknee.matrix=m.getMatrix();
+						m.pop();
+							var lleg=this.objects[19];
+							lleg.setUniform('rgb',[.57,0.57,0.57]);
+							m.translate(0.0,-0.2, 0.0);
+							m.scale(0.05,0.2,0.05);
+							lleg.matrix=m.getMatrix();
+							m.pop();
+								var lankle=this.objects[26];
+								lankle.setUniform('rgb' ,[.57,.57,.57]);
+								m.translate(0.0,-0.2,0.0);
+								m.rotate(-15-30*cstep1-40*cstep2,3);
+								m.rotate(-20+5*cstep2,2);
+								m.rotate(10,1);
+								m.scale(0.05,0.05,0.05);
+								lankle.matrix=m.getMatrix();
+								m.pop();//ankle
+									var lfoot=this.objects[27];
+									lfoot.setUniform('rgb',[0.57,0.57,0.57]);
+									m.translate(0.04,-0.020,0.0);
+									m.scale(0.1,0.03,0.055);
+									lfoot.matrix=m.getMatrix();
+									m.pop();//foot
+									m.pop();//foot
+								m.pop();//ankle
+								m.pop();//ankle	
+								m.pop();//ankle	
+								m.pop();//ankle
+							m.pop();
+						m.pop();
+						m.pop();
+						m.pop();
+						m.pop();
+						m.pop();
+					m.pop();
+                m.pop();
+				m.pop();
+				m.pop();
+				m.pop();
+        
+        if (this.mousePressed)
+            console.log("canvas1 drag " + this.mouseX + " " + this.mouseY);
+    }
+</script>
+
+</body></html>

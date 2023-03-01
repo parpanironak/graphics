@@ -1,0 +1,358 @@
+
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><script src="gl1.js"></script>
+    <style>
+        h2, h1 {
+        font-family:sans-serif;
+        margin-top:30px;
+        }
+
+    </style>
+      </head>
+<body onload="glStart();">
+
+<h1>Cheap Gravity</h1>
+    <p>Texture Mapping</p>
+    <p>Bump Mapping using procedural noise</p>
+    <p>RGB to HSV conversions to identify white regions in the texture file for bump mapping</p>
+    <p>Transparent areas using aplha values from the texture</p>
+<center>
+
+<table width="100%">
+<tbody>
+<tr>
+    <td>
+        <div>
+        <center>  
+        <div><p><h2>Scene 1<h2></p></div>
+        <canvas id="canvas2" data-render="gl" width="700" height="600" tabindex="1"></canvas></center>
+        </div>
+    </td>
+ 
+    <td>
+        <div>
+        <center>  
+        <div><p><h2>Scene 2<h2></p></div>
+        <canvas id="canvas1" data-render="gl" width="700" height="600" tabindex="1"></canvas></center>
+        </div>
+    </td>
+ </tr>
+</tbody></table>
+
+   
+</center>
+<hr>
+ 
+<script id="fs_phong" type="x-shader/x-fragment">
+    uniform float p[10];
+    uniform vec3 lDir;
+    varying vec3 vNormal;
+
+    void main(void) {
+
+       // NORMALIZE LENGTH OF THE INTERPOLATED NORMAL
+
+       vec3 normal = normalize(vNormal);
+
+       // COMPUTE DIFFUSE FACTOR
+
+       float ldn = dot(lDir, normal);
+       float diffuse = max(0., ldn);
+
+       // COMPUTE SPECULAR FACTOR
+
+       vec3 refl = 2. * ldn * normal - lDir;
+       float specular = pow(max(0., refl.z), p[9]);
+
+       // SUM PHONG REFLECTION COMPONENTS
+
+       vec3 c = vec3(p[0],p[1],p[2]) +
+                vec3(p[3],p[4],p[5]) * diffuse +
+                vec3(p[6],p[7],p[8]) * specular;
+
+       // APPLY GAMMA CORRECTION
+       
+       
+       gl_FragColor = vec4(pow(c.x,0.45),pow(c.y,0.45),pow(c.z,0.45),1.);
+    }
+</script>
+
+<script id="fs_uv" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+    void main(void) {
+       float c = 2.*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       float u = .5+.5*sin(30.*vUV.x);
+       float v = .5+.5*sin(40.*vUV.y);
+       gl_FragColor = vec4(c*rgb, 1.);
+    }
+</script>
+
+<script id=fs2 type=x-shader/x-fragment>
+   uniform sampler2D uSampler;
+   uniform vec3 uLDir;
+   varying vec3 vNormal;
+   varying vec2 vUV;
+
+   vec3 ungammaCorrect(vec3 c) { return vec3(pow(c.x,2.222),pow(c.y,2.222),pow(c.z,2.222)); }
+   vec3 gammaCorrect(vec3 c) { return vec3(pow(c.x,.45),pow(c.y,.45),pow(c.z,.45)); }
+    
+    float maximum(vec3 c)
+    {
+        if(c.x>=c.y && c.x>=c.z)
+            return c.x;
+        else if(c.y>=c.z)
+            return c.y;
+        else
+            return c.z;
+            
+    }
+
+    float minimum(vec3 c)
+    {
+        if(c.x<=c.y && c.x<=c.z)
+            return c.x;
+        else if(c.y<=c.z)
+            return c.y;
+        else
+            return c.z;
+            
+    }
+
+    vec3 rgb2hsv(vec3 c)
+    {
+        float cmax=maximum(c);
+        float cmin=minimum(c);
+        float delta=cmax-cmin;
+        float v=cmax;
+        float h=0.0;
+        float s=0.0;
+        if(delta==0.0)
+            return vec3(h,s,v);
+        if(cmax==c.r)
+            h=60.0*(mod((c.g-c.b)/delta,6.0));
+        else if(cmax==c.g)
+            h=60.0*((c.b-c.r)/delta+2.0);
+        else if(cmax==c.b)
+            h=60.0*((c.r-c.g)/delta+4.0);
+        
+        if(delta!=0.0)
+            s=delta/cmax;
+
+        return vec3(h,s,v);
+        
+    }
+   
+    
+    float noi(vec3 c)
+    {
+        float tem=sin(c.x*c.y*30.+5.5*sin(abs(noise(200.*c))));
+        tem=0.5+tem/3.0;
+        tem=clamp(tem*tem*tem*5.0,-0.5,1.0);
+
+        return tem;
+    }
+    void main(void) {
+      vec4 trgb = texture2D(uSampler, vUV).rgba;
+      vec3 hsv = rgb2hsv(trgb.xyz);
+      float u=2.0*vUV.x-1.0;
+      float v=2.0*vUV.y-1.0;
+      float w=sqrt(4.0-u*u-v*v);
+      vec3 pts=vec3(u,v,w);
+      vec3 n=vNormal;
+      if(hsv.z>=0.7&&hsv.y<=0.25)
+        {
+            trgb*=vec4(0.1,0.7,0.35,1.0);
+            float p=noi(pts);
+            float e=0.00001;
+            float px=(noi(pts+vec3(e,0.0,0.0))-p)/e;
+            float py=(noi(pts+vec3(0.0,e,0.0))-p)/e;            
+            float pz=(noi(pts+vec3(0.0,0,e))-p)/e;
+
+            n-=vec3(px,py,pz);             
+        }
+      float d = .3 + .8 * max(0., dot(uLDir, normalize(n)));
+      vec3 rgb = vec3(d,d,d);
+      rgb = rgb * trgb.xyz;
+      gl_FragColor = vec4(rgb, trgb.a);
+   }
+</script>
+
+<script id=fs_wood type=x-shader/x-fragment>
+   uniform sampler2D uSampler;
+   uniform vec3 uLDir;
+   varying vec3 vNormal;
+   varying vec2 vUV;
+
+   vec3 ungammaCorrect(vec3 c) { return vec3(pow(c.x,2.222),pow(c.y,2.222),pow(c.z,2.222)); }
+   vec3 gammaCorrect(vec3 c) { return vec3(pow(c.x,.45),pow(c.y,.45),pow(c.z,.45)); }
+
+   void main(void) {
+            vec4 trgb = texture2D(uSampler, vUV).xyzw;
+      vec3 n=vNormal;       
+      float d = .2 + .8 * max(0., dot(uLDir, normalize(n)));
+     
+      vec3 rgb = vec3(d,d,d);
+      rgb = rgb * trgb.xyz; 
+      gl_FragColor = vec4(rgb, trgb.w);
+   }
+</script>
+
+<script>
+
+
+    canvas2.setup = function () {
+        this.addObject(createParametric(1 / 50, 1 / 50, sph), 'fs2');
+        this.addObject(createParametric(1 / 50, 1 / 50, plane), 'fs_wood');
+
+    }
+
+
+
+    canvas2.update = function () {
+        var obj0 = this.objects[0];
+        var obj1 = this.objects[1];
+
+        //alert(time);
+        var m = scale(.8, .75, .8);
+        m = mulitply(rotate(90, 1), m);
+        m = mulitply(rotate(20, 3), m);
+        m = mulitply(rotate(2 * Math.PI * time, 2), m);
+        m = mulitply(translate(0, 0, 0.), m);
+        obj0.matrix = mulitply(translate(-0.5, -0.7, 2), m);
+        var xc = -1.0 * Math.cos(2 * Math.PI * time / 32);
+        var zc = 1.0 * Math.sin(2 * Math.PI * time / 32);
+        var yc = -0.3 * Math.cos(2 * Math.PI * time / 32);
+        var siz = 0.1 + 0.1 * Math.sin(2 * Math.PI * time / 32);
+
+        m = mulitply(rotate(170, 3), scale(siz, siz, siz));
+        m = mulitply(translate(xc, yc, zc), m);
+
+        obj1.matrix = mulitply(translate(-0.5, -0.7, 2), m);
+        obj0.textureSrc = "earth2.jpg";
+        obj1.textureSrc = "spacewalk.png";
+        obj0.setUniform('uLDir', [.57, .57, .57]);
+        obj1.setUniform('uLDir', [.57, .57, .57]);
+        if (this.mousePressed)
+            console.log("canvas1 drag " + this.mouseX + " " + this.mouseY);
+    }
+
+    canvas1.setup = function () {
+        this.addObject(createParametric(1 / 80, 1 / 80, sph), 'fs2');
+        this.addObject(createParametric(1 / 50, 1 / 50, plane), 'fs_wood');
+
+    }
+
+
+
+    canvas1.update = function () {
+        var obj0 = this.objects[0];
+        var obj1 = this.objects[1];
+
+        //alert(time);
+        var m = scale(.7, .7, .7);
+        m = mulitply(rotate(90, 1), m);
+        m = mulitply(rotate(2 * Math.PI * time, 2), m);
+        m = mulitply(translate(0, 0, 0.), m);
+        obj0.matrix = mulitply(translate(0.0, 0.0, 0.0), m);
+        var xc = -0.8 * Math.cos(2 * Math.PI * time / 32);
+        var zc = 0.8 * Math.sin(2 * Math.PI * time / 32);
+        var yc = -0.3 * Math.cos(2 * Math.PI * time / 32);
+        var siz = 0.1 + 0.1 * Math.sin(2 * Math.PI * time / 32);
+
+        m = mulitply(rotate(160, 3), scale(siz, siz, siz));
+        m = mulitply(translate(xc, yc, zc), m);
+
+        obj1.matrix = mulitply(translate(0.0, 0.0, 0.0), m);
+        obj0.textureSrc = "earth2.jpg";
+        obj1.textureSrc = "spacewalk.png";
+        obj0.setUniform('uLDir', [.57, .57, .57]);
+        obj1.setUniform('uLDir', [.57, .57, .57]);
+        if (this.mousePressed)
+            console.log("canvas1 drag " + this.mouseX + " " + this.mouseY);
+    }
+
+
+
+
+    var sph = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+        return [cosT * cosP, sinT * cosP, sinP];
+    }
+
+    var plane = function (u, v) {
+
+        return [u - 0.5, v - 0.5, 0];
+    }
+
+    function mulitply(q, p) {
+        var m = [];
+
+        m[0] = q[0] * p[0] + q[4] * p[1] + q[8] * p[2] + q[12] * p[3];
+        m[1] = q[1] * p[0] + q[5] * p[1] + q[9] * p[2] + q[13] * p[3];
+        m[2] = q[2] * p[0] + q[6] * p[1] + q[10] * p[2] + q[14] * p[3];
+        m[3] = q[3] * p[0] + q[7] * p[1] + q[11] * p[2] + q[15] * p[3];
+        m[4] = q[0] * p[4] + q[4] * p[5] + q[8] * p[6] + q[12] * p[7];
+        m[5] = q[1] * p[4] + q[5] * p[5] + q[9] * p[6] + q[13] * p[7];
+        m[6] = q[2] * p[4] + q[6] * p[5] + q[10] * p[6] + q[14] * p[7];
+        m[7] = q[3] * p[4] + q[7] * p[5] + q[11] * p[6] + q[15] * p[7];
+        m[8] = q[0] * p[8] + q[4] * p[9] + q[8] * p[10] + q[12] * p[11];
+        m[9] = q[1] * p[8] + q[5] * p[9] + q[9] * p[10] + q[13] * p[11];
+        m[10] = q[2] * p[8] + q[6] * p[9] + q[10] * p[10] + q[14] * p[11];
+        m[11] = q[3] * p[8] + q[7] * p[9] + q[11] * p[10] + q[15] * p[11];
+        m[12] = q[0] * p[12] + q[4] * p[13] + q[8] * p[14] + q[12] * p[15];
+        m[13] = q[1] * p[12] + q[5] * p[13] + q[9] * p[14] + q[13] * p[15];
+        m[14] = q[2] * p[12] + q[6] * p[13] + q[10] * p[14] + q[14] * p[15];
+        m[15] = q[3] * p[12] + q[7] * p[13] + q[11] * p[14] + q[15] * p[15];
+
+        return m;
+    }
+
+    function transform(p, m) {
+        return [m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12],
+                 m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13],
+                 m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]];
+    }
+
+    function rotate(a, ax) {
+        a = a * Math.PI / 180;
+        c = Math.cos(a);
+        s = Math.sin(a);
+
+        if (ax == 1)
+            return [1, 0, 0, 0,
+                    0, c, s, 0,
+                    0, -s, c, 0,
+                    0, 0, 0, 1];
+        if (ax == 2)
+            return [c, 0, -s, 0,
+                    0, 1, 0, 0,
+                    s, 0, c, 0,
+                    0, 0, 0, 1];
+        if (ax == 3)
+            return [c, s, 0, 0,
+                    -s, c, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1];
+    }
+
+    function scale(a, b, c) {
+        return [a, 0, 0, 0,
+                0, b, 0, 0,
+                0, 0, c, 0,
+                0, 0, 0, 1];
+    }
+
+    function translate(a, b, c) {
+        return [1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                a, b, c, 1];
+    }
+</script>
+
+</body></html>

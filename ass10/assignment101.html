@@ -1,0 +1,196 @@
+
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <script src="gl.js"></script>
+    <script src="script.js"></script>
+    <style>
+        h2, h1 {
+        font-family:sans-serif;
+        margin-top:30px;
+        }
+
+    </style>
+      </head>
+<body onload="glStart();">
+
+<center>
+<table width="100%">
+<tbody>
+<tr>    
+    <td>
+        <div>
+            <center>  
+                <canvas id="canvas1" data-render="gl" width="600" height="600" tabindex="1"></canvas>
+            </center>
+        </div>
+    </td>
+ </tr>
+</tbody></table>
+<br />
+    <p>Time:<span id="time"></span></p>  
+    <p>T1:<span id="t1"></span></p>  
+    <p>T2:<span id="t2"></span></p>       
+</center>
+<hr>
+ 
+ <script id=fs_wood type=x-shader/x-fragment>
+   uniform sampler2D uSampler;
+   uniform vec3 uLDir;
+   varying vec3 vNormal;
+   varying vec2 vUV;
+   void main(void) {
+      float d = .1 + .9 * max(0., dot(uLDir, normalize(vNormal)));
+      vec3 rgb = vec3(d,d,d);
+      vec3 trgb = ungammaCorrect(texture2D(uSampler, vUV).xyz);
+      rgb = rgb * trgb;
+      gl_FragColor = vec4(gammaCorrect(rgb), 1.);
+   }
+</script>
+ 
+<script id="fs_phong" type="x-shader/x-fragment">
+    uniform float p[10];
+    uniform vec3 lDir;
+    varying vec3 vNormal;
+
+    void main(void) {
+
+       // NORMALIZE LENGTH OF THE INTERPOLATED NORMAL
+
+       vec3 normal = normalize(vNormal);
+
+       // COMPUTE DIFFUSE FACTOR
+
+       float ldn = dot(lDir, normal);
+       float diffuse = max(0., ldn);
+
+       // COMPUTE SPECULAR FACTOR
+
+       vec3 refl = 2. * ldn * normal - lDir;
+       float specular = pow(max(0., refl.z), p[9]);
+
+       // SUM PHONG REFLECTION COMPONENTS
+
+       vec3 c = vec3(p[0],p[1],p[2]) +
+                vec3(p[3],p[4],p[5]) * diffuse +
+                vec3(p[6],p[7],p[8]) * specular;
+
+       // APPLY GAMMA CORRECTION
+       
+       
+       gl_FragColor = vec4(pow(c.x,0.45),pow(c.y,0.45),pow(c.z,0.45),1.);
+    }
+</script>
+
+<script id="fs_uv" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+    
+	vec3 ungammaCorrect(vec3 c) { return vec3(pow(c.x,2.222),pow(c.y,2.222),pow(c.z,2.222)); }
+	vec3 gammaCorrect(vec3 c) { return vec3(pow(c.x,.45),pow(c.y,.45),pow(c.z,.45)); }
+   
+	void main(void) {
+       float c =0.3 + 2.*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       float u = .5+.5*sin(30.*vUV.x);
+       float v = .5+.5*sin(40.*vUV.y);
+       gl_FragColor = vec4(c*rgb, 1.);
+    }
+</script>
+
+<script>
+
+    canvas1.setup = function () {
+       
+    	var zer=[0,0,0];
+    	for(var i = -0.6;i<=0.61;i+=0.2)
+    	{	
+    		for(var j = -0.6;j<=0.61 ;j+=0.2)
+    			for(var k = -0.6;k<=0.61;k+=0.2)
+        			this.addObject(createParametric(1 / 5, 1 / 5, sph), 'fs_uv', 10, [i,j,k],[0,0,0],[0,0,0],
+        			[0.01,0.01,0.01], 10, [0.3,0.3,0.3]);
+    	}
+        	//function(vertArray, fragShaderId, life, pos, vel, acc, size, w, col)
+        this.mouseX=this.width/2;
+        this.mouseY=this.height/2;
+        
+
+    }
+    canvas1.update = function () {
+        var m = new M();
+        document.getElementById("time").innerText = (this.mouseX/this.width).toFixed(3);
+		var mx=(this.mouseX/this.width) - 0.5;
+		var my=-(this.mouseY/this.height) + 0.5;
+		var mouse=[0,0,0];
+        fsc = [2, 0.05, 2];
+        asc = [0.1, 0.55, .1];
+        jsc = [0.15, 0.15, 0.15];
+		for(var i=0;i<this.objects.length;i++)
+			{
+				var j1 = this.objects[i];
+				j1.life-=0.0;
+				var max=subv(mouse,j1.pos);
+				var mmax=magv(max);
+		        j1.acc=mulv(normalize(max),0.0005*mmax);
+		        j1.vel=limit(addv(j1.vel,j1.acc),0.5);
+		        j1.pos=addv(j1.pos,j1.vel);
+		        m.push(m.eye());
+		        m.rotate(-180*my,1);
+		        m.rotate(180*mx,2);
+		        m.translate(j1.pos);
+		        j1.col=addvs(mulv(absv(j1.pos),2),0.3);
+		        m.scale(j1.size);
+		        j1.matrix = m.getMatrix();
+		        j1.setUniform('rgb', j1.col);
+		        m.pop();
+		        m.pop();
+		        m.pop();
+		        m.pop();
+			}
+     }
+
+    function saw(t) {
+        t %= 2;
+        return t < 1 ? t : 2 - t;
+    }
+
+    var sph = function (u, v) {
+
+        
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+
+            return [cosT * cosP, sinT * cosP, sinP];
+        
+    }
+
+    var cylh = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta),
+            sinT = Math.sin(theta),
+            w = 2 * (v - 0.5);
+
+        return [sinT, w, cosT];
+    }
+
+    var cylv = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta),
+            sinT = Math.sin(theta),
+            w = 2 * (v - 0.5);
+
+        return [w, cosT, sinT];
+    }
+
+    var plane = function (u, v) {
+
+        return [2 * (u - 0.5), 2 * (v - 0.5), 0];
+    }
+
+</script>
+
+
+</body></html>

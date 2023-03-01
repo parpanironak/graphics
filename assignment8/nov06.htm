@@ -1,0 +1,370 @@
+
+<!-- saved from url=(0050)http://mrl.nyu.edu/~perlin/courses/fall2013/nov06/ -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<script src="./nov06_files/g.js"></script>
+<script src="./nov06_files/mat.js"></script>
+<script src="./nov06_files/inoise.js"></script>
+</head>
+<body onload="gStart();">
+
+<!--!!!!!!!!!!!!!!!--><hr color="white" size="20"><center><table width="90%"><tbody><tr><td>
+
+<center>
+<big></big><p><big><b>Course notes for November 6</b></big>
+</p><p>
+<i>
+(more diagrams coming soon)
+</i>
+</p></center>
+<p>
+
+In this week's course notes, I refer to some
+earlier things I've done in Java.
+To see these examples,
+you might
+want to use a browser such as Firefox that will
+let you install and run Java applets.
+</p><p>
+
+</p><p><b>Forward Kinematics</b></p><p>
+
+Often we want to create hierarchical mechanisms,
+such as this
+<a href="http://mrl.nyu.edu/~perlin/experiments/rosie/rosie-sketch.html" target="1">balancing mechanism</a> that I showed in class.
+These hierarchically structured mechanisms
+generally use <i>forward kinematics</i>,
+in which transformations form a tree
+structure that descends from a single root.
+</p><p>
+
+an class we implemented a swinging arm, as a simple example of forward kinematics.
+</p><p>
+<table><tbody><tr>
+<td valign="top">
+Given a matrix object
+<code>m</code> that has
+methods to implement
+<code>translate</code>,
+<code>rotate</code>
+and
+<code>scale</code>,
+as well as the ability to maintain an internal stack
+of matrix values via
+<code>push()</code> and
+<code>pop()</code> methods,
+the swinging arm is implemented via the following code:
+
+<pre>   m.push();
+      standardView(.5,.5,0,0,.5);
+      m.translate(-.5,2,0);
+	 m.push();
+         m.rotateZ(sin(3*time));
+         m.translate(0,-1,0);
+	 m.push();
+	    m.scale(.1,1,.1);
+	    unitCube();
+	 m.pop();
+	 m.translate(0,-1,0);
+	 m.rotateZ(.5 - .5 * cos(3*time));
+	 m.translate(0,-1,0);
+	 m.push();
+	    m.scale(.1,1,.1);
+	    unitCube();
+	 m.pop();
+      m.pop();
+   m.pop();
+</pre>
+</td>
+<td width="20"></td>
+
+<td valign="top">
+<canvas id="example1" width="400" height="400" tabindex="1"></canvas>
+</td>
+</tr></tbody></table>
+</p><p>
+For clarity, I implemented the above example using
+push and pop methods.
+But if you want to create a system that allows
+users to put together their own object hierarchies,
+you are better off using explicit objects.
+</p><p>
+In such a scheme,
+each object would have its own matrix transformation,
+and would also maintain a list of child objects.
+The transformation of a child object would
+be relative to its parent,
+thereby forming a tree of object nodes.
+
+</p><p></p><hr><b>Animation over time -- key frame animation</b><p>
+
+When creating animations, it is often convenient
+to specify values only at certain frames,
+and then use smooth curves to interpolate
+values at the frames between these <i>key frames</i>.
+In-betweening with
+ease curves which start and stop with zero derivative,
+such as <i>3t<sup>2</sup>-2t<sup>3</sup></i> produce
+natural looking interpolations.
+</p><p>
+I showed an example of this in class:
+<a href="http://mrl.nyu.edu/~perlin/am_hand2/" target="1">
+a hand that can be animated by setting key frames</a>.
+</p><p>
+To show different animations of the hand,
+type "a1" or "a2" or "a3" followed by the space key.
+You can also read the on-line instructions on that
+page to learn how to vary the key-frame animation.
+</p><p>
+
+</p><p></p><hr><b>Inverse kinematics</b><p>
+
+Inverse kinematics is the opposite of forward kinematics.
+In an inverse kinematic system, you start with the
+location of an end effector (such as a hand
+or a foot or a robot gripper),
+and the system needs to figure out the corresponding chain of
+intermediate matrices from the root of the object hierarchy.
+</p><p>
+There are two common approaches to inverse kinematics,
+general N-link IK and
+special purpose 2-link IK.
+The N-link approach requires an iterative solver,
+whereas the 2-link approach has a closed form solution,
+with no need for iteration.
+</p><p>
+
+To talk about 2-link IK, consider the case of an leg,
+where the locations of the hip and ankle
+are known, and we need to find the location of the knee.
+</p><p>
+To make the math simpler, let's assume
+a hip located at the origin [0,0,0],
+an upper leg of length <i>A</i>
+and a lower leg of length <i>B</i>.
+If the ankle is located at some point <b>P</b>,
+we want to find the knee location <b>Q</b>.
+</p><p>
+
+As we discussed in class, knee location <b>Q</b> can
+lie anywhere on the circle of intersection
+between two spheres:
+The sphere of radius <i>A</i> centered at hip location [0,0,0]
+and the sphere of radius <i>B</i> centered at ankle location <b>P</b>.
+</p><p>
+To pick the best point on this circle, we need to specify an aiming direction
+<b>D</b> that says which way is "forward"
+(since knees generally point forward).
+</p><p>
+
+What we need is a function that computes
+<b>Q</b>, given
+<i>A</i>,
+<i>B</i>,
+<b>P</b> and
+<b>D</b>.
+I've implemented, in Java, a solution to exactly this,
+with copious comments.
+That solution is posted
+<a href="http://mrl.nyu.edu/~perlin/courses/fall2013/nov06/mrl.nyu.edu/~perlin/ik" target="1"><font color="red">here</font></a>.
+Feel free to use and adapt my algorithm.
+</p><p>
+
+I use 2-link IK in my on-line example of
+<a href="http://mrl.nyu.edu/~perlin/experiments/emotive-actors/" target="1">
+man and woman characters that walk on a grid</a>.
+In that example, you can pull on the arm or leg
+of a character to see the 2-link IK in action.
+All of the positioning of torso, shoulders and hips
+are done by higher level procedural decisions,
+in response to the general position of the
+hands and feet,
+rather than by using multi-link IK.
+
+</p><p></p><hr><b>Conveying emotion</b><p>
+
+People are pre-disposed to
+see emotion in characters, so even a very simple
+character can be expressive, if it has recognizably
+human traits.
+I showed this in class with
+an example of my simple character
+<a href="http://mrl.nyu.edu/~perlin/experiments/polly/" target="1">Polly</a>,
+made from only six vertices.
+
+</p><p></p><hr><b>Luxo lamps and flying fish</b><p>
+
+Possibly the most influential short
+film in the history of computer graphics
+was
+John Lasseter's
+<a href="http://www.youtube.com/watch?v=Hrnz2pg3YPg" target="1">Luxo Jr</a>.
+One of the many reasons that film worked so well
+was that Lasseter applied the techniques of traditional
+animation that had been developed for hand-drawn
+animation over the course of the previous century.
+</p><p>
+
+My on-line
+<a href="http://mrl.nyu.edu/~perlin/desklamp2/" target="1">desk lamp</a>
+interactive desklamp shows some of these principles in action.
+The lamp moves entirely in arcs, not in straight lines,
+always eases in and out when changing its focus of attention,
+and uses slower movements for its larger parts near
+its root (the base of the lamp)
+while using quicker and more decisive movements when
+moving its head.
+</p><p>
+
+My on-line
+<a href="http://cims.nyu.edu/~perlin/fishtales2/" target="1">
+interactive fish</a>
+is a modification of the desklamp.
+It uses the same animation armature that drives the desklamp,
+but in this case the armature is invisible.
+The human eye is so good at detecting patterns
+that people respond to the non-linear movement
+of the fish character, recognizing the sense
+of intentionality in its non-linear movements.
+</p><p>
+The facial expressions of the fish are done
+via procedural mesh animation,
+which I will plan to go over in more
+detail in next week's lecture.
+
+
+</p><p></p><hr><b>Walking and stepping</b><p>
+To implement advanced algorithms such as walking
+we need to do things "from the ground up",
+by building algorithmic mechanisms that figure out foot placement,
+given a path for a character to walk along.
+I will be talking about this in more detail next week,
+but meanwhile I showed some examples for inspiration.
+</p><p>
+My
+<a href="http://mrl.nyu.edu/~perlin/brown-shoes" target="1">brown shoes</a>
+demo shows control of a foot stepping algorithm
+through a number of useful higher level parameters.
+The movement model always produces
+a valid foot stepping movement.  Varying parameter values
+changes the style of that movement.
+</p><p>
+
+I also showed an
+<a href="http://mrl.nyu.edu/~perlin/brown-shoesh/seepuppet.html" target="1">
+interactive demo of two characters dancing</a>,
+built on top of this same parameterized foot stepping,
+as well as other parameters to control posture and body position.
+I'll go into more detail about
+how this is implemented in next week's lecture.
+
+
+</p><p></p><hr><b>Boids</b><p>
+
+There is an entire sub-field of computer animation
+devoted to swarms and particle animation.
+One historically important example of this
+was Craig Reynold's
+<a href="http://www.red3d.com/cwr/boids/" target="1">Boids</a>,
+which he first published in 1987.
+This technique for simulating herding and flocking behavior
+showed convincingly that a few simple procedural rules can
+create the impression of compelling group and social behavior.
+This technique was famously used in the 1992 feature
+film <i>Batman Returns</i>, and has since become a
+staple of the movie and game special effects industry.
+
+<font color="red">
+</font></p><p></p><hr><font color="red"><b>Homework</b><p>
+
+There are many topics in movement and animation
+that we have not yet covered, including
+details of walking algorithms,
+path planning, collision avoidance,
+physics-based dynamically driven movement,
+and general particle systems (to name just a few).
+</p><p>
+Meanwhile, we have covered forward kinematics
+in sufficient detail that you can now implement
+hierarchical models.
+For next week's class, I would like you to 
+demonstrate a hierarchical object system.
+Each geometric object should possess a transformation matrix
+and a list (possibly empty) of child objects, forming a recursive tree structure.
+The transformation of each child object should
+be relative to its parent.
+</p><p>
+
+You can go in two general directions with this assignment:
+(1) you can create a key-frame system, as in the hand example
+I show above, and use that to create a short animated film, or
+(2) you can implement responsive behavior for your scene
+that responds to the user's mouse or keyboard input
+in interesting ways.
+If you are feeling ambitious, you might want to do both:
+create an animated film that is modified by
+user input.
+</p><p>
+
+You should not use my Matrix class -- you should define your own.
+By now you should have all the necessary matrix operations
+already defined in the course of having implemented
+earlier homeworks.
+</p><p>
+
+Also, I would like your hierarchical models
+to extend the WebGL modeling and shading work
+that you've already implemented.
+</p><p>
+
+If you are feeling ambitious, for extra credit
+you can re-implement, in JavaScript, the on-line
+implementation of 2-link IK I describe above.
+This will allow you to produce much more
+interesting character movements.
+For example, it will allow you to directly
+position the hands and feet of animated characters.
+</p></font><p><font color="red">
+
+As usual, you are also welcome to define your own
+direction for extra credit.
+
+</font>
+<!--!!!!!!!!!!!!!!!--></p><hr size="100" color="white"></td></tr></tbody></table></center>
+
+<script>
+   var pts=[[-1,-1,-1],[1,-1,-1],[-1,1,-1],[1,1,-1],[-1,-1,1],[1,-1,1],[-1,1,1],[1,1,1]];
+   var edges=[[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]];
+   var m = new M4();
+
+   function unitCube() {
+      for (var i = 0 ; i < edges.length ; i++)
+         mLine(pts[edges[i][0]], pts[edges[i][1]]);
+   }
+
+   example1.animate = function() {
+      m.push();
+         standardView(.5,.5,0,0,.5);
+         m.translate(-.5,2,0);
+	 m.push();
+	        m.rotateZ(sin(3 * time));
+	        m.rotateX(sin(3 * time));
+            m.translate(0,-1,0);
+	    m.push();
+	       m.scale(.1,1,.1);
+	       unitCube();
+	    m.pop();
+	    m.translate(0,-1,0);
+	    m.rotateZ(.5 - .5 * cos(3*time));
+	    m.translate(0,-1,0);
+	    m.push();
+	       m.scale(.1,1,.1);
+	       unitCube();
+	    m.pop();
+         m.pop();
+      m.pop();
+   }
+
+</script>
+
+
+</body></html>

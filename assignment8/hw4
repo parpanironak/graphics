@@ -1,0 +1,57 @@
+assert(rollinmud(X) :- pig(X)).
+assert(sunny(thursday)).
+assert(go_walkin :- sunny;cloudy).
+assert(mammals(X) :- humans(X)).
+assert(human(Jessica)).
+frog(Ted).
+assert(muppet(googly)).
+muppet(googly);muppet(Chomki).
+assert(duck(X) :- walks_like_duck(X), talks_like_duck(X)).
+assert(duck(X) :- walks_like_duck(X)).
+walks_like_duck(Who).
+assert(walks_like_duck(something)).
+assert(walks_like_duck(Everything)).
+
+
+parent(X,Y).
+father(X,Y) :- male(X),parent(X,Y).
+mother(X,Y) :- female(X),parent(X,Y).
+son(X,y):- male(X),parent(Y,X).
+sibling(X,Y):- parent(Z,X),parent(Z,Y).
+brother(X,Y):- male(X),sibling(X,Y).
+sister(X,Y):- female(X),sibling(X,Y).
+grandson(X,Y):- male(X),parent(Z,X),parent(Y,Z).
+granddaugher(X,Y):- female(X),parent(Z,X),parent(Y,Z).
+cousin(X,Y):- parent(Z,X),parent(W,Y),sibling(Z,W).
+niece(X,Y):- female(X), parent(Z,X),sibling(Y,Z).
+nephew(X,Y):- male(X), parent(Z,X),sibling(Y,Z).
+
+
+1. a(X) & a(42) -> yes
+X=42
+
+2. a(X,12) & a(7,Y) ->yes
+X=7, Y=12
+
+3. a(X) & b(Y) ->yes
+X=Y
+
+4. a(a(5,X),X) & a(Y,Z) ->yes
+X=Z, y=a(5,X)
+
+5. c(X) & c(c(c(X))) -> No
+
+6. c(X) & c(X) ->Yes
+X=X
+
+7. a(b(c(X))) & c(b(a(3))) ->No
+
+8. b(1,2) & b(1,6) ->No
+
+9. d(c(A),2) & d(c(2),B) ->
+A=2, B=2
+
+10. b(X, c(2, X, Z)) & b(4, c(W, 7, Y)) ->false
+X=4, W=2, X=7, Y=Z
+
+11. a(1, b(X, Y)) & a(Y, b(2, c(6, Z), 10)) -> false

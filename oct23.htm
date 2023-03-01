@@ -1,0 +1,621 @@
+
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><script src="gl.js"></script>
+    <style>
+        h2 {
+        font-family:sans-serif;
+        margin-top:30px;
+        }
+    </style>
+      </head>
+<body onload="glStart();">
+<center>
+<table width="100%">
+<tbody>
+<tr>
+    <td>
+        <div>
+        <center>  
+        <div><p><h2>Parametric shapes<h2></p></div>
+        <canvas id="canvas3" data-render="gl" width="600" height="600" tabindex="1"></canvas></center>
+        </div>
+
+    <td>
+        <div>
+        <center>  
+        <div><p><h2>Spring Pendulum<h2></p></div>
+        <canvas id="canvas4" data-render="gl" width="600" height="600" tabindex="1"></canvas></center>
+            </div>
+    </td>
+</tr>
+<tr>
+    <td>
+       <div>
+        <center>  
+        <div><p><h2>Haloween Candies<h2></p></div>
+            <canvas id="canvas1" data-render="gl" width="600" height="600" tabindex="1"></canvas></center>
+        </div>
+    </td>
+    <td>
+        <div>
+        <center>  
+        <div><p><h2>Wooden Texture<h2></p></div>
+        <canvas id="canvas2" data-render="gl" width="600" height="600" tabindex="1"></canvas></center>
+        </div>
+    </td>
+ </tr>
+</tbody></table>
+</center>
+<hr>
+
+<script id="fs_phong" type="x-shader/x-fragment">
+    uniform float p[10];
+    uniform vec3 lDir;
+    varying vec3 vNormal;
+
+    void main(void) {
+
+       // NORMALIZE LENGTH OF THE INTERPOLATED NORMAL
+
+       vec3 normal = normalize(vNormal);
+
+       // COMPUTE DIFFUSE FACTOR
+
+       float ldn = dot(lDir, normal);
+       float diffuse = max(0., ldn);
+
+       // COMPUTE SPECULAR FACTOR
+
+       vec3 refl = 2. * ldn * normal - lDir;
+       float specular = pow(max(0., refl.z), p[9]);
+
+       // SUM PHONG REFLECTION COMPONENTS
+
+       vec3 c = vec3(p[0],p[1],p[2]) +
+                vec3(p[3],p[4],p[5]) * diffuse +
+                vec3(p[6],p[7],p[8]) * specular;
+
+       // APPLY GAMMA CORRECTION
+       
+       
+       gl_FragColor = vec4(pow(c.x,0.45),pow(c.y,0.45),pow(c.z,0.45),1.);
+    }
+</script>
+
+<script id="noise1" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+       void main(void) {
+       float u=vUV.x-0.5;
+       float v=vUV.y-0.5;
+       float no=0.0;
+       vec3 tem=vec3(0.,0.,0.);
+       //tem=vec3(sin(vUV*10.+20.*noise(vUV)),1.0);
+       //no=1.0-clamp(sin(v*20.+50.*noise(vUV*5.)),0.0,1.0);
+       //no=sin(v*50. +2.0*noise(5.*vUV))*cos(u*50. +2.0*noise(5.*vUV));
+       //no=sin(u*20.+sin(noise(40.*vUV)));
+       float p=0.0;
+       for(int i=1;i<5;i++){
+            //tem+=vec3(sin(vUV*u+1.*abs(noise(10.0*vUV*pow(2.,p)))/pow(2.0,p)),0.0);
+            //tem+=vec3(sin(vUV*u+5.*noise(10.0*vUV*pow(2.,p))/pow(2.0,p)),0.0);
+            no+=abs(noise(vec2(u,v)*pow(2.0,p)))/pow(2.0,p);
+            //no+=0.5/abs(noise(vUV*pow(2.0,p))/pow(2.0,p));
+            p=p+1.0;
+        }
+        no=0.5+no/5.0;
+        tem=clamp(pow(no,4.0)*2.3*vec3(1.0,1.0,1.0),0.0,1.0);
+        float c = 2.0*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       
+       gl_FragColor = vec4((c*rgb+tem), 1.);
+       //gl_FragColor = vec4(c*rgb*no, 1.); 
+    }
+</script>
+
+<script id="noise7" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+       void main(void) {
+       float u=vUV.x-0.5;
+       float v=vUV.y-0.5;
+       float no=0.0;
+       vec3 tem=vec3(0.,0.,0.);
+       no=sin(v*10. +2.0*noise(5.*vUV))*cos(u*90. +2.0*noise(5.*vUV));
+        
+        tem=clamp(pow(no,4.0)*1.5*vec3(1.0,1.0,1.0),0.0,1.0);
+        float c = 0.3 +2.0*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       
+       gl_FragColor = vec4(tem*c+rgb*c, 1.);
+       //gl_FragColor = vec4(c*rgb, 1.); 
+    }
+</script>
+
+
+<script id="noise6" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+       void main(void) {
+       float u=vUV.x-0.5;
+       float v=vUV.y-0.5;
+       float no=0.0;
+       vec3 tem=vec3(0.,0.,0.);
+        tem=vec3(sin(vUV*40.+1.5*sin(noise(40.*vUV))),1.0);
+        tem=0.55+tem/3.0;
+        tem=clamp(tem*tem*tem*tem*2.0*vec3(0.9,0.9,0.0),0.0,1.0);
+        float c = 0.1+2.0*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       
+       gl_FragColor = vec4((c*rgb+c*tem), 1.);
+       //gl_FragColor = vec4(c*rgb*no, 1.); 
+    }
+</script>
+
+<script id="noise5" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+       void main(void) {
+       float u=vUV.x-0.5;
+       float v=vUV.y-0.5;
+       float no=0.0;
+       vec3 tem=vec3(0.,0.,0.);
+       no=sin(v*90. +2.0*noise(5.*vUV))*cos(u*90. +2.0*noise(5.*vUV));
+        
+        tem=clamp(pow(no,3.0)*1.0*vec3(1.0,1.0,1.0),0.0,1.0);
+        float c = 0.3 +2.0*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       
+       gl_FragColor = vec4(tem*c+rgb*c, 1.);
+       //gl_FragColor = vec4(c*rgb, 1.); 
+    }
+</script>
+
+<script id="noise4" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+       void main(void) {
+       float u=vUV.x-0.5;
+       float v=vUV.y-0.5;
+       float no=0.0;
+       vec3 tem=vec3(0.,0.,0.);
+       tem=vec3(sin(vUV*10.+20.*noise(vUV)),1.0);
+       //no=1.0-clamp(sin(v*20.+50.*noise(vUV*5.)),0.0,1.0);
+       //no=sin(v*50. +2.0*noise(5.*vUV))*cos(u*50. +2.0*noise(5.*vUV));
+       //no=sin(u*20.+sin(noise(40.*vUV)));
+       
+        //no=0.5+no/5.0;
+        //tem=clamp(pow(no,3.0)*2.3*vec3(1.0,1.0,1.0),0.0,1.0);
+        float c = 0.2 +2.0*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       
+       gl_FragColor = vec4((c*rgb+c*tem), 1.);
+       //gl_FragColor = vec4(c*rgb*no, 1.); 
+    }
+</script>
+
+
+<script id="noise3" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+       void main(void) {
+       float u=vUV.x-0.5;
+       float v=vUV.y-0.5;
+       float no=0.0;
+       vec3 tem=vec3(0.,0.,0.);
+       float p=0.0;
+       for(int i=1;i<8;i++){
+            no+=noise(vec2(u,v)*pow(2.0,p))/pow(2.0,p);
+            p=p+1.0;
+        }
+        no=0.5+no/4.0;
+        tem=clamp(pow(no,3.0)*2.5*vec3(1.0,1.0,1.0),0.0,1.0);
+        float c = 2.0*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       
+       gl_FragColor = vec4((c*rgb+0.5*tem), 1.);
+       //gl_FragColor = vec4(c*rgb*no, 1.); 
+    }
+</script>
+
+<script id="noise21" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+       void main(void) {
+       float u=vUV.x-0.5;
+       float v=vUV.y-0.5;
+       float no=0.0;
+       vec3 tem=vec3(0.,0.,0.);
+       no=sin(v*150. +2.0*noise(7.*vUV))*cos(u*5. +2.0*noise(7.*vUV));
+       vec3 tem1=vec3(sin(vUV*50.+20.*noise(vUV*40.)),1.0); 
+        tem= clamp(pow(no,1.0)*1.5*vec3(1.0,1.0,1.0),0.0,1.0);
+        float c = 0.3 +2.0*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       
+        float t1 = noise(vec3(5.*u, 100.*v ,1.));
+                     if ((t1 = t1*0.2) < rgb.x)
+                        tem = vec3(t1,t1,t1)+turbulence(vec3(vUV,0.0));
+
+       gl_FragColor = vec4(tem*rgb*c+tem1*0.03, 1.);
+       //gl_FragColor = vec4(c*rgb, 1.); 
+    }
+</script>
+
+<script id="noise2" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+       void main(void) {
+       float u=vUV.x-0.5;
+       float v=vUV.y-0.5;
+       float no=0.0;
+       vec3 tem=vec3(0.,0.,0.);
+       float c = 2.0*max(0.,dot(normalize(vec3(.3,.3,.3)),normalize(vNormal)));
+       
+       gl_FragColor = vec4((c*rgb+0.5*turbulence(vNormal)), 1.);
+       //gl_FragColor = vec4(c*rgb*no, 1.); 
+    }
+</script>
+
+<script id="fs_uv" type="x-shader/x-fragment">
+    uniform vec3 rgb;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+    void main(void) {
+       float c = 2.*max(0.,dot(vec3(.3,.3,.3),normalize(vNormal)));
+       float u = .5+.5*sin(30.*vUV.x);
+       float v = .5+.5*sin(40.*vUV.y);
+       gl_FragColor = vec4(c*rgb, 1.);
+    }
+</script>
+
+<script>
+    
+
+    canvas1.setup = function () {
+        this.addObject(createParametric(1 / 50, 1 / 50, tofee), 'noise4');
+        this.addObject(createParametric(1 / 50, 1 / 50, tofee), 'noise5');
+        this.addObject(createParametric(1 / 50, 1 / 50, tofee), 'noise6');
+        this.addObject(createParametric(1 / 50, 1 / 50, tofee), 'noise6');
+      
+    }
+    
+    
+
+    canvas1.update = function() {
+        var obj0 = this.objects[0];
+        var obj1 = this.objects[1];
+        var obj2 = this.objects[2];
+        var obj3 = this.objects[3];
+
+        var m = mulitply(rotate(15 * time, 3), scale(0.2, 0.2, 0.2));
+        m = mulitply(rotate(90,2),m);
+        obj0.matrix = mulitply(translate(-0.5, 0.5, 0), m);
+        obj1.matrix = mulitply(translate(0.5, 0.5, 0), m);
+        obj2.matrix = mulitply(translate(0.5, -0.5, 0), m);
+        obj3.matrix = mulitply(translate(-0.5, -0.5, 0), m);
+
+        obj0.setUniform('rgb', [0.9, 0, 0]);
+        obj1.setUniform('rgb', [0.9, 0.0, 0.4]);
+        obj2.setUniform('rgb', [0.0, 0.9, 0.0]);
+        obj3.setUniform('rgb', [0.0, 0.9, 0.9]);
+        
+        if (this.mousePressed)
+           console.log("canvas1 drag " + this.mouseX + " " + this.mouseY);
+    }
+
+    canvas4.setup = function () {
+        this.addObject(createParametric(1 / 100, 1 / 80, cylv), 'fs_phong');
+        this.addObject(createParametric(1 / 50, 1 / 25, sph), 'noise2');
+    }
+
+
+
+    canvas4.update = function () {
+        var cy = .5 * Math.cos(time);
+        var sy = .5 * Math.sin(time);
+
+        var obj0 = this.objects[0];
+        var obj1 = this.objects[1];
+
+        var m = scale(0.4, 0.4 + 0.1 * Math.sin(time * 5), 0.4);
+        m = mulitply(rotate(180, 3), m);
+        m = mulitply(translate(0,0.8,0), m);
+        obj0.matrix = m;
+        obj1.matrix = mulitply(translate(0, -0.25-0.21 * Math.sin(time * 5), 0), mulitply(rotate(85,2),scale(0.3, 0.3, 0.3)));
+
+        obj0.setUniform('p', [.1, .1, .1, .4, .4, .4, 1, 1, 1, 20]);
+        obj1.setUniform('rgb',[0.8,0.4,0.4]);
+
+        obj0.setUniform('lDir', [.57, .57, .57]);
+
+        if (this.mousePressed)
+            console.log("canvas1 drag " + this.mouseX + " " + this.mouseY);
+    }
+
+
+    canvas2.setup = function () {
+        this.addObject(createParametric(1 / 100, 1 / 80, cylv), 'fs_phong');
+        this.addObject(createParametric(1 / 50, 1 / 25, sph), 'noise21');
+    }
+
+
+
+    canvas2.update = function () {
+        var cy = .5 * Math.cos(time);
+        var sy = .5 * Math.sin(time);
+
+        var obj0 = this.objects[0];
+        var obj1 = this.objects[1];
+
+        var m = scale(0.8, 0.8 + 0.2 * Math.sin(time * 5), 0.8);
+        m = mulitply(rotate(180, 3), m);
+        m = mulitply(translate(0, 0.8, 0), m);
+        obj0.matrix = m;
+        obj1.matrix = mulitply(translate(0, -0.25 - 0.21 * Math.sin(time * 5), 0), mulitply(rotate(85, 2), scale(0.3, 0.3, 0.3)));
+
+        obj0.setUniform('p', [.1, .1, .1, .4, .4, .4, 1, 1, 1, 20]);
+        obj1.setUniform('rgb', [0.7, 0.4, 0.35]);
+
+        obj0.setUniform('lDir', [.57, .57, .57]);
+
+        if (this.mousePressed)
+            console.log("canvas1 drag " + this.mouseX + " " + this.mouseY);
+    }
+    
+
+    canvas3.setup = function () {
+        this.addObject(createParametric(1 / 80, 1 / 40, tofee), 'fs_phong');
+        this.addObject(createParametric(1 / 80, 1 / 40, wigle), 'fs_phong');
+        this.addObject(createParametric(1 / 80, 1 / 40, starflower), 'fs_phong');
+        this.addObject(createParametric(1 / 80, 1 / 40, corrugated), 'fs_phong');
+        this.addObject(createParametric(1 / 36, 1 / 24, disk), 'fs_phong');
+        this.addObject(createParametric(1 / 36, 1 / 24, disk1), 'fs_phong');
+        this.addObject(createParametric(1 / 36, 1 / 24, cyl), 'fs_phong');
+        this.addObject(createParametric(1 / 80, 1 / 40, surface), 'fs_phong');
+        this.addObject(createParametric(1 / 80, 1 / 80, torous), 'fs_phong');
+
+    }
+
+    canvas3.update = function () {
+
+        var obj0 = this.objects[0];
+        var obj1 = this.objects[1];
+        var obj2 = this.objects[2];
+        var obj3 = this.objects[3];
+        var obj4 = this.objects[4];
+        var obj5 = this.objects[5];
+        var obj6 = this.objects[6];
+        var obj7 = this.objects[7];
+        var obj8 = this.objects[8];
+
+        var m = mulitply(rotate(0, 2),scale(0.1, 0.1, 0.1) );
+        m = mulitply( rotate(-time*15, 2),m);
+        obj0.matrix = mulitply(translate(0.5, -0.5, 0),m);
+        obj1.matrix = mulitply(translate(-0.5, 0.5, 0), m);
+        obj2.matrix = mulitply(translate(-0.5,- 0.5, 0), m);
+        obj3.matrix = mulitply(translate(0.5, 0.5, 0), m);
+        obj4.matrix = mulitply(translate(0, 0, 0), m);
+        obj5.matrix = mulitply(translate(0, 0, 0), m);
+        obj6.matrix = mulitply(translate(0, 0, 0), m);
+        obj7.matrix = mulitply(translate(0, 0.5, 0), m);
+        obj8.matrix = mulitply(translate(0, -0.5, 0), m);
+
+        obj0.setUniform('p', [.1, .0, 0, .9, .0, 0, 1, 1, 1, 20]);
+        obj1.setUniform('p', [.1, .0, 0, .9, .0, 0, 1, 1, 1, 20]);
+        obj2.setUniform('p', [.1, .0, 0, .9, .0, 0, 1, 1, 1, 20]);
+        obj3.setUniform('p', [.1, .0, 0, .9, .0, 0, 1, 1, 1, 20]);
+        obj4.setUniform('p', [.1, .0, 0, .9, .0, 0, 1, 1, 1, 20]);
+        obj5.setUniform('p', [.1, .0, 0, .9, .0, 0, 1, 1, 1, 20]);
+        obj6.setUniform('p', [.1, .0, 0, .9, .0, 0, 1, 1, 1, 20]);
+        obj7.setUniform('p', [.1, .0, 0, .9, .0, 0, 1, 1, 1, 20]);
+        obj8.setUniform('p', [.1, .0, 0, .9, .0, 0, 1, 1, 1, 20]);
+
+        obj0.setUniform('lDir', [.57, .57, .57]);
+        obj1.setUniform('lDir', [.57, .57, .57]);
+        obj2.setUniform('lDir', [.57, .57, .57]);
+        obj3.setUniform('lDir', [.57, .57, .57]);
+        obj4.setUniform('lDir', [.57, .57, .57]);
+        obj5.setUniform('lDir', [.57, .57, .57]);
+        obj6.setUniform('lDir', [.57, .57, .57]);
+        obj7.setUniform('lDir', [.57, .57, .57]);
+        obj8.setUniform('lDir', [.57, .57, .57]);
+
+        if (this.mousePressed)
+            console.log("canvas1 drag " + this.mouseX + " " + this.mouseY);
+    }
+
+    var cyl = function(u,v) {
+       var theta = 2 * Math.PI * u,
+           phi = Math.PI * (v - .5),
+           cosT = Math.cos(theta) , cosP = Math.cos(phi) ,
+           sinT = Math.sin(theta), sinP = Math.sin(phi);
+       
+           return [cosT, sinT, sinP];
+    }
+
+    var sph = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+        return [cosT * cosP, sinT * cosP, sinP];
+    }
+
+    var cylv = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+            
+       
+
+        return [0.2 * (sinT + 1.2 * Math.sin(phi * 8)),
+                2.0 * (v),
+                0.2 * (cosT + 1.2 * Math.cos(phi * 8))];
+    }
+
+    var tofee = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+            
+        return [cosT * Math.cos(phi * 2), sinT * Math.cos(phi * 2),  2*sinP];
+    }
+
+    var starflower = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+        return [sinT * cosP + 0.2 * Math.cos(10 * theta), cosT * cosP + 0.2 * Math.sin(10 * theta), 0.5 * sinP];
+    }
+
+    var torous = function (u, v)
+    {
+        var theta = 2 * Math.PI * u,
+            phi = 2 * Math.PI * v;
+
+        return [(2 + 0.5*Math.cos(phi)) * Math.cos(4*theta), (2 + 0.5*Math.cos(phi)) * Math.sin(4*theta), 0.5*Math.sin(phi)+10*(u-0.5)];
+    }
+
+
+    var wigle = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+        return [cosT +0.25*Math.sin(10*v*Math.PI), sinT , 1.5*sinP];
+    }
+
+    var corrugated = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+        
+        return [2.5*(0.5 - u),-2.5*(v - 0.5), 0.2* Math.cos(5 * Math.PI * v)];
+    }
+
+    var p1 = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+            
+            
+        return [2.5 * (0.5 - u), -2.5 * (v - 0.5),
+            0.1 * Math.cos(5 * Math.PI * v) * Math.sin(5 * Math.PI * u)];
+    }
+
+    var p2 = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            theta2 = 2 * Math.PI * v,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+
+        return [2 * Math.cos(theta2) * Math.cos(theta),
+                2 * Math.cos(theta2) * Math.cos(theta),
+                2 * Math.sin(theta2)];
+    }
+
+    var surface = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+
+        return [2*(0.5 - u), 2 * (u - 0.5) * (v - 0.5), 2*(v - 0.5)];
+    }
+
+    var disk = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+        return [sinP, cosP*cosT, .99];
+    }
+
+    var disk1 = function (u, v) {
+        var theta = 2 * Math.PI * u,
+            phi = Math.PI * (v - .5),
+            cosT = Math.cos(theta), cosP = Math.cos(phi),
+            sinT = Math.sin(theta), sinP = Math.sin(phi);
+
+        return [cosP * cosT, sinP, -0.99];
+    }
+
+    function mulitply(q, p) {
+        var m = [];
+
+        m[0] = q[0] * p[0] + q[4] * p[1] + q[8] * p[2] + q[12] * p[3];
+        m[1] = q[1] * p[0] + q[5] * p[1] + q[9] * p[2] + q[13] * p[3];
+        m[2] = q[2] * p[0] + q[6] * p[1] + q[10] * p[2] + q[14] * p[3];
+        m[3] = q[3] * p[0] + q[7] * p[1] + q[11] * p[2] + q[15] * p[3];
+        m[4] = q[0] * p[4] + q[4] * p[5] + q[8] * p[6] + q[12] * p[7];
+        m[5] = q[1] * p[4] + q[5] * p[5] + q[9] * p[6] + q[13] * p[7];
+        m[6] = q[2] * p[4] + q[6] * p[5] + q[10] * p[6] + q[14] * p[7];
+        m[7] = q[3] * p[4] + q[7] * p[5] + q[11] * p[6] + q[15] * p[7];
+        m[8] = q[0] * p[8] + q[4] * p[9] + q[8] * p[10] + q[12] * p[11];
+        m[9] = q[1] * p[8] + q[5] * p[9] + q[9] * p[10] + q[13] * p[11];
+        m[10] = q[2] * p[8] + q[6] * p[9] + q[10] * p[10] + q[14] * p[11];
+        m[11] = q[3] * p[8] + q[7] * p[9] + q[11] * p[10] + q[15] * p[11];
+        m[12] = q[0] * p[12] + q[4] * p[13] + q[8] * p[14] + q[12] * p[15];
+        m[13] = q[1] * p[12] + q[5] * p[13] + q[9] * p[14] + q[13] * p[15];
+        m[14] = q[2] * p[12] + q[6] * p[13] + q[10] * p[14] + q[14] * p[15];
+        m[15] = q[3] * p[12] + q[7] * p[13] + q[11] * p[14] + q[15] * p[15];
+        //alert("multiply");
+        return m;
+    }
+
+    function transform(p, m) {
+        return [m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12],
+                 m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13],
+                 m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]];
+    }
+
+    function rotate(a, ax) {
+        a = a * Math.PI / 180;
+        c = Math.cos(a);
+        s = Math.sin(a);
+
+        if (ax == 1)
+            return [1, 0, 0, 0,
+                    0, c, s, 0,
+                    0, -s, c, 0,
+                    0, 0, 0, 1];
+        if (ax == 2)
+            return [c, 0, -s, 0,
+                    0, 1, 0, 0,
+                    s, 0, c, 0,
+                    0, 0, 0, 1];
+        if (ax == 3)
+            return [c, s, 0, 0,
+                    -s, c, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1];
+    }
+
+    function scale(a, b, c) {
+        return [a, 0, 0, 0,
+                0, b, 0, 0,
+                0, 0, c, 0,
+                0, 0, 0, 1];
+    }
+    
+    function translate(a, b, c) {
+        return [1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                a, b, c, 1];
+    }
+</script>
+
+</body></html>
